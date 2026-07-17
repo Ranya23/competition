@@ -1,914 +1,963 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Learning Journeys Pro — Educational Platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Learning Journeys Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,560;9..144,680&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Using Noto Sans Arabic for excellent Kurdish support, and Inter for English -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-/* ============================================================
-   DESIGN SYSTEM
-   ============================================================ */
 :root {
-  --pine-950: #071610;
-  --pine-900: #0a1e16;
-  --pine-800: #102d21;
-  --pine-700: #194331;
-  --pine-600: #255c44;
-  --pine-500: #337b5b;
-  --gold-300: #edd18c;
-  --gold-500: #d1ab54;
-  --gold-600: #b08d3e;
-  --parchment: #f0ebd9;
-  --parchment-dim: #d1c8ac;
-  --ink: #0d1a13;
-  --rust: #bd5942;
-  --rust-300: #e39d8d;
-  --moss: #76a475;
-  --moss-300: #b5dab2;
-
-  --font-display: 'Fraunces', serif;
-  --font-body: 'Space Grotesk', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-
+  /* Modern Professional Educational Theme */
+  --primary: #4F46E5; /* Indigo 600 */
+  --primary-hover: #4338CA;
+  --secondary: #0EA5E9; /* Sky 500 */
+  --accent: #F59E0B; /* Amber 500 */
+  
+  --bg-main: #F8FAFC; /* Slate 50 */
+  --bg-card: #FFFFFF;
+  --bg-subtle: #F1F5F9;
+  
+  --text-main: #0F172A; /* Slate 900 */
+  --text-muted: #64748B; /* Slate 500 */
+  --text-inverse: #FFFFFF;
+  
+  --success: #10B981;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  
+  --border: #E2E8F0;
+  
+  --font-en: 'Inter', sans-serif;
+  --font-ku: 'Noto Sans Arabic', sans-serif;
+  
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 24px;
-  --shadow-panel: 0 20px 40px -15px rgba(0,0,0,0.65);
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+
+/* RTL Support for Kurdish */
+[dir="rtl"] {
+  --font-en: 'Noto Sans Arabic', sans-serif; /* Override default font for RTL */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; padding: 0; background: var(--pine-950); color: var(--parchment); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
-h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 560; margin: 0; letter-spacing: -0.01em; }
-p { margin: 0; }
-button { font-family: var(--font-body); cursor: pointer; border: none; outline: none; }
-a { color: var(--gold-300); text-decoration: none; }
-::selection { background: var(--gold-500); color: var(--ink); }
-
-/* Streaming topographic grid lines */
-.contour-bg {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.35;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='140' viewBox='0 0 420 140'%3E%3Cg fill='none' stroke='%23d1ab54' stroke-width='1'%3E%3Cpath d='M-10 20 C 40 0, 80 40, 130 20 S 220 0, 270 20 S 360 40, 410 20' /%3E%3Cpath d='M-10 55 C 40 35, 80 75, 130 55 S 220 35, 270 55 S 360 75, 410 55' opacity='0.7'/%3E%3Cpath d='M-10 90 C 40 70, 80 110, 130 90 S 220 70, 270 90 S 360 110, 410 90' opacity='0.5'/%3E%3Cpath d='M-10 125 C 40 105, 80 145, 130 125 S 220 105, 270 125 S 360 145, 410 125' opacity='0.35'/%3E%3C/g%3E%3C/svg%3E");
-  background-repeat: repeat; mix-blend-mode: color-dodge;
+html, body { height: 100%; margin: 0; padding: 0; }
+body {
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-en);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
 }
 
-#app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+h1, h2, h3, h4 { margin: 0; font-weight: 700; color: var(--text-main); }
+p { margin: 0; line-height: 1.5; }
+a { color: var(--primary); text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
 
-/* ============================================================
-   LAYOUT COMPONENTS
-   ============================================================ */
-.screen { display: flex; flex-direction: column; min-height: 100vh; width: 100%; position: relative; }
-.wrap { max-width: 1040px; margin: 0 auto; width: 100%; padding: 30px 24px; flex-grow: 1; display: flex; flex-direction: column; }
-.eyebrow {
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--gold-300); display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-}
-.eyebrow::before { content: ''; width: 16px; height: 1px; background: var(--gold-500); display: inline-block; }
+/* Utilities */
+.wrap { max-width: 1000px; margin: 0 auto; width: 100%; padding: 0 20px; }
+.card { background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--border); padding: 20px; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; } .gap-4 { gap: 16px; }
+.mt-4 { margin-top: 16px; } .mb-4 { margin-bottom: 16px; }
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); }
 
+/* Buttons */
 .btn {
-  border: 1px solid var(--gold-500); background: transparent; color: var(--gold-300);
-  padding: 12px 24px; border-radius: 999px; font-weight: 600; font-size: 14px;
-  transition: all .2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 600; font-size: 14px;
+  transition: all 0.2s; border: 1px solid transparent; gap: 8px;
 }
-.btn:hover:not(:disabled) { background: rgba(209,171,84,0.15); transform: translateY(-1px); }
-.btn:active:not(:disabled) { transform: translateY(1px); }
-.btn.primary { background: var(--gold-500); color: var(--ink); border-color: var(--gold-500); }
-.btn.primary:hover:not(:disabled) { background: var(--gold-300); border-color: var(--gold-300); }
-.btn.google { background: #ffffff; color: #1f2937; border-color: transparent; }
-.btn.google:hover:not(:disabled) { background: #f3f4f6; box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
-.btn.google svg { width: 18px; height: 18px; }
-.btn.ghost { border-color: var(--pine-600); color: var(--parchment-dim); }
-.btn.ghost:hover:not(:disabled) { border-color: var(--parchment); color: var(--parchment); }
-.btn.danger { border-color: var(--rust); color: var(--rust-300); }
-.btn.danger:hover:not(:disabled) { background: rgba(189,89,66,0.15); }
-.btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn.small { padding: 8px 16px; font-size: 12px; }
+.btn-primary { background: var(--primary); color: var(--text-inverse); }
+.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-outline { border-color: var(--border); color: var(--text-main); background: var(--bg-card); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-danger { background: var(--danger); color: white; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
-.card {
-  background: var(--pine-800); border: 1px solid var(--pine-600); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel); padding: 24px; overflow: hidden; position: relative;
-}
-
-/* Form Styling */
+/* Forms */
 .field { margin-bottom: 16px; }
-.field label {
-  display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--parchment-dim); margin-bottom: 8px;
+.field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;}
+.input { width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-main); font-size: 15px; font-family: inherit; transition: border-color 0.2s; }
+.input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+textarea.input { resize: vertical; min-height: 80px; }
+
+/* Navigation / Top Bar */
+.top-bar {
+  background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 10px 20px;
+  display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;
 }
-.field input[type=text], .field input[type=number], .field input[type=url], .field select, .field textarea {
-  width: 100%; background: var(--pine-900); border: 1px solid var(--pine-600); color: var(--parchment);
-  padding: 12px 16px; border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.field textarea { resize: vertical; min-height: 80px; }
-.field input:focus, .field select:focus, .field textarea:focus {
-  outline: none; border-color: var(--gold-500); box-shadow: 0 0 0 3px rgba(209,171,84,0.25);
-}
-.field-row { display: flex; gap: 16px; }
-.field-row > .field { flex: 1; }
+.lang-switch { display: flex; gap: 4px; background: var(--bg-subtle); padding: 4px; border-radius: var(--radius-sm); }
+.lang-switch button { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.lang-switch button.active { background: var(--bg-card); color: var(--primary); box-shadow: var(--shadow-sm); }
 
-/* ============================================================
-   AUTH SCREEN
-   ============================================================ */
-.auth-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-.auth-card { max-width: 420px; width: 100%; text-align: center; border-color: var(--gold-500); }
-.auth-card h1 { font-size: 34px; margin-bottom: 12px; color: var(--gold-300); }
-.auth-card p { color: var(--parchment-dim); font-size: 15px; line-height: 1.6; margin-bottom: 28px; }
+/* Authentication Screen */
+.auth-screen { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #f6f8fd 0%, #f1f5f9 100%); }
+.auth-card { width: 100%; max-width: 400px; padding: 40px 30px; text-align: center; }
+.auth-logo { width: 64px; height: 64px; background: var(--primary); color: white; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; font-weight: bold;}
+.auth-subtitle { color: var(--text-muted); margin-bottom: 30px; font-size: 14px;}
+.code-inputs { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+.code-inputs input { width: 45px; height: 50px; text-align: center; font-size: 24px; font-weight: bold; border-radius: var(--radius-sm); border: 2px solid var(--border); background: var(--bg-main); }
+.code-inputs input:focus { border-color: var(--primary); outline: none; }
 
-/* ============================================================
-   TEACHER SETUP & TABS
-   ============================================================ */
-.setup-header { padding: 20px 0; margin-bottom: 24px; }
-.setup-header h1 { font-size: 36px; color: var(--parchment); margin-top: 4px; }
-.setup-header .sub { color: var(--parchment-dim); font-size: 15px; margin-top: 8px; max-width: 60ch; line-height: 1.5; }
+/* Teacher Dashboard */
+.dashboard-layout { display: grid; grid-template-columns: 280px 1fr; gap: 24px; padding: 24px 20px; max-width: 1200px; margin: 0 auto; align-items: start;}
+@media (max-width: 768px) { .dashboard-layout { grid-template-columns: 1fr; } }
+.sidebar-menu { display: flex; flex-direction: column; gap: 8px; }
+.menu-item { padding: 12px 16px; border-radius: var(--radius-sm); font-weight: 500; color: var(--text-muted); text-align: start; transition: all 0.2s;}
+.menu-item:hover { background: var(--bg-subtle); color: var(--text-main); }
+.menu-item.active { background: var(--primary); color: white; }
 
-.step-tabs { display: flex; gap: 8px; margin-bottom: 30px; border-bottom: 1px solid var(--pine-600); overflow-x: auto; }
-.step-tabs button {
-  background: transparent; color: var(--parchment-dim); padding: 12px 8px; margin-right: 16px;
-  font-size: 13px; font-weight: 600; border-bottom: 3px solid transparent; position: relative; top: 1px;
-  font-family: var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap;
-  transition: all 0.2s;
-}
-.step-tabs button.active { color: var(--gold-300); border-bottom-color: var(--gold-500); }
-.step-tabs button:disabled { opacity: 0.3; cursor: not-allowed; }
+/* Setup Cards */
+.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.preset-card { border: 2px solid var(--border); padding: 20px; border-radius: var(--radius-md); text-align: center; transition: all 0.2s; background: var(--bg-card); cursor: pointer;}
+.preset-card:hover { border-color: var(--secondary); transform: translateY(-2px); }
+.preset-card.active { border-color: var(--primary); background: rgba(79, 70, 229, 0.05); }
+.preset-icon { font-size: 32px; margin-bottom: 10px; }
 
-.type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-.type-card {
-  text-align: left; padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--pine-600);
-  background: var(--pine-800); color: var(--parchment); transition: all 0.2s;
-}
-.type-card:hover { border-color: var(--gold-500); transform: translateY(-2px); }
-.type-card.selected { border-color: var(--gold-500); background: var(--pine-700); box-shadow: 0 0 0 1px var(--gold-500) inset; }
-.type-card .glyph { font-family: var(--font-mono); font-size: 11px; color: var(--gold-300); letter-spacing: 0.1em; text-transform: uppercase; }
-.type-card h3 { font-size: 20px; margin-top: 8px; }
+/* Q&A List */
+.q-list { display: flex; flex-direction: column; gap: 12px; }
+.q-item { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); }
+.q-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; }
+.q-opt { padding: 8px; border-radius: var(--radius-sm); background: var(--bg-subtle); }
+.q-opt.correct { background: rgba(16, 185, 129, 0.1); color: var(--success); font-weight: 600; border: 1px solid rgba(16,185,129,0.3);}
 
-/* Checklist */
-.cp-item { display: flex; justify-content: space-between; align-items: center; background: var(--pine-900); border: 1px solid var(--pine-700); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 8px; }
+/* Projector View */
+.projector-view { position: fixed; inset: 0; background: var(--text-main); color: white; z-index: 1000; display: flex; flex-direction: column; }
+.proj-header { padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.proj-content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; text-align: center; position: relative; }
+.proj-q-text { font-size: 4vw; max-width: 90%; font-weight: 700; line-height: 1.3; margin-bottom: 40px; }
+.proj-options { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1000px; }
+.proj-opt { padding: 30px; font-size: 2vw; background: rgba(255,255,255,0.1); border-radius: var(--radius-md); border: 2px solid transparent; transition: all 0.3s;}
+.proj-opt.reveal-correct { background: var(--success); border-color: #fff; transform: scale(1.05); }
 
-/* Sticky footer bar */
-.sticky-footer {
-  position: fixed; bottom: 0; left: 0; right: 0; background: var(--pine-900); border-top: 1px solid var(--pine-600);
-  padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 50;
-}
-.sticky-footer .req-note { font-family: var(--font-mono); font-size: 11px; color: var(--parchment-dim); }
+/* Slide Iframe */
+.slide-iframe-container { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
+.slide-iframe-container iframe { width: 100%; height: 100%; border: none; }
 
-/* ============================================================
-   LOBBY / WAITING SCREEN
-   ============================================================ */
-.lobby-grid { display: grid; grid-template-columns: 280px 1fr; gap: 24px; margin-top: 24px; }
-@media (max-width: 768px) { .lobby-grid { grid-template-columns: 1fr; } }
-.lobby-qr-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.lobby-qr-card canvas { border-radius: var(--radius-sm); background: var(--parchment); margin: 12px 0; max-width: 100%; }
-.lobby-code { font-family: var(--font-mono); font-size: 32px; letter-spacing: 0.15em; color: var(--gold-300); margin-top: 8px; font-weight: 700; }
+/* Student View */
+.student-view { min-height: 100vh; background: var(--bg-main); padding: 20px; display: flex; flex-direction: column; max-width: 500px; margin: 0 auto; }
+.student-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 20px;}
+.student-btn { width: 100%; padding: 20px; font-size: 18px; font-weight: 600; border-radius: var(--radius-md); background: var(--bg-card); border: 2px solid var(--border); margin-bottom: 12px; transition: all 0.2s; text-align: start; display: flex; align-items: center; gap: 15px;}
+.student-btn:active { transform: scale(0.98); }
+.student-btn.selected { border-color: var(--primary); background: rgba(79, 70, 229, 0.1); }
+.student-btn-letter { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: var(--text-muted);}
 
-.team-mini-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.team-mini-row .flag { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
-.team-mini-row .tname { font-weight: 600; font-size: 14px; }
+/* Map */
+.map-container { width: 100%; height: 400px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); z-index: 1;}
+.proj-map-container { width: 100%; height: 60vh; max-width: 1200px; border-radius: var(--radius-lg); border: 4px solid rgba(255,255,255,0.2);}
 
-/* ============================================================
-   TEACHER LIVE CONTROLLER (PHONE OR PANEL)
-   ============================================================ */
-.live-shell { display: grid; grid-template-columns: 1fr 320px; gap: 24px; max-width: 1200px; margin: 0 auto; width: 100%; align-items: start; }
-@media (max-width: 900px) { .live-shell { grid-template-columns: 1fr; } }
-.control-header { border-bottom: 1px solid var(--pine-600); padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.slide-sync-card { border: 1px solid var(--gold-600); background: linear-gradient(135deg, var(--pine-800), var(--pine-900)); }
+/* Timer */
+.timer-ring { position: relative; width: 80px; height: 80px; }
+.timer-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+.timer-circle-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+.timer-circle { fill: none; stroke: var(--primary); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.1s linear; }
+.timer-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; }
+.timer-circle.urgent { stroke: var(--danger); }
+.timer-text.urgent { color: var(--danger); }
 
-/* ============================================================
-   PROJECTOR DISPLAY
-   ============================================================ */
-.projector-frame { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; position: relative; background: #040d0a; overflow: hidden; }
-.projector-waiting h1 { font-size: 64px; color: var(--parchment); margin-bottom: 16px; }
-.projector-fullscreen-btn { position: absolute; bottom: 30px; right: 30px; background: rgba(0,0,0,0.7); border: 1px solid var(--pine-600); color: var(--parchment); padding: 12px 24px; border-radius: var(--radius-sm); z-index: 100; font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
-.projector-fullscreen-btn:hover { background: var(--gold-500); color: var(--ink); border-color: var(--gold-500); }
-
-/* Unified Projection Frame */
-.embed-container { width: 100%; height: 100vh; position: absolute; inset: 0; z-index: 10; background: #000; }
-.embed-iframe { width: 100%; height: 100%; border: none; }
-
-/* Projector Question styling */
-.p-question-body { max-width: 960px; width: 100%; z-index: 20; }
-.p-question-body .p-qtext { font-size: 48px; line-height: 1.3; margin-bottom: 40px; font-family: var(--font-display); color: var(--parchment); }
-
-/* ============================================================
-   STUDENT GAMEPAD
-   ============================================================ */
-.student-screen { max-width: 480px; margin: 0 auto; padding: 24px 16px 80px; width: 100%; }
-.student-badge { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; background: var(--pine-800); border: 1px solid var(--pine-600); padding: 10px 16px; border-radius: var(--radius-md); }
-.student-badge .flag { width: 16px; height: 16px; border-radius: 4px; }
-.student-badge .name { font-weight: 700; font-size: 15px; }
-
-.trail-signs { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 24px; }
-@media (min-width: 520px) { .trail-signs { grid-template-columns: 1fr 1fr; } }
-.trail-sign {
-  position: relative; border: none; text-align: left; padding: 20px 20px 18px 48px; border-radius: 12px;
-  background: var(--pine-800); border: 2px solid var(--pine-600); color: var(--parchment); font-size: 16px;
-  font-weight: 600; transition: all 0.15s ease; cursor: pointer; width: 100%; min-height: 64px; display: flex; align-items: center;
-}
-.trail-sign::before {
-  content: attr(data-letter); position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-  font-family: var(--font-mono); font-size: 13px; color: var(--gold-300); border: 1px solid var(--pine-500);
-  width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-}
-.trail-sign:hover:not(:disabled) { border-color: var(--gold-500); transform: translateY(-2px); }
-.trail-sign:disabled { opacity: 0.55; cursor: default; }
-.trail-sign.selected { border-color: var(--gold-500); background: var(--pine-700); box-shadow: 0 0 0 1px var(--gold-500) inset; }
-
-/* ============================================================
-   TOASTS
-   ============================================================ */
-#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
-.toast { background: var(--pine-800); color: var(--parchment); padding: 14px 20px; border-radius: var(--radius-sm); border-left: 4px solid var(--gold-500); box-shadow: var(--shadow-panel); font-size: 14px; animation: slideIn 0.3s ease-out forwards; min-width: 250px; }
-@keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 </style>
 </head>
 <body>
-<div class="contour-bg" aria-hidden="true"></div>
 
-<!-- Immersive Application Mount Point -->
-<main id="app"></main>
-<div id="toast-container"></div>
+<div id="app-root"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// --- LOCALIZATION DICTIONARY ---
+const DICT = {
+  en: {
+    appName: "Learning Journeys Pro",
+    loginTitle: "Teacher Login",
+    loginSub: "Enter your Google Workspace email to continue.",
+    email: "Email Address",
+    sendCode: "Send Verification Code",
+    enterCode: "Enter 4-Digit Code",
+    verify: "Verify & Login",
+    mockNotice: "Note: This is a secure simulation. Any 4-digit code works for testing.",
+    dashboard: "Teacher Dashboard",
+    setup: "Game Setup",
+    liveControl: "Live Controls",
+    projector: "Projector View",
+    logout: "Logout",
+    popProjector: "Pop-out Projector",
+    compType: "Competition Type",
+    questions: "Question Bank",
+    settings: "Settings",
+    slides: "Google Slides",
+    pasteSlides: "Paste Google Slides Link (Optional)",
+    slidesSub: "Paste the 'Publish to web' embed link, or a standard sharing link to show presentations during the game.",
+    startSession: "Start Session",
+    showSlides: "Show Slides",
+    showGame: "Show Game / Map",
+    nextQ: "Next Question",
+    revealQ: "Reveal Question",
+    endGame: "End Game",
+    waitingPlayers: "Waiting for players to join...",
+    joinCode: "Join Code:",
+    scanToJoin: "Scan or go to link to join",
+    studentWait: "Look at the projector...",
+    studentLocked: "Answer locked in!",
+    correct: "Correct!",
+    incorrect: "Incorrect",
+    timeUp: "Time is up!",
+    teamName: "Team Name",
+    join: "Join Game",
+    map: "Live Map",
+    fullScreen: "Toggle Fullscreen"
+  },
+  ku: {
+    appName: "گەشتەکانی فێربوون پرۆ",
+    loginTitle: "چوونە ژوورەوەی مامۆستا",
+    loginSub: "ئیمەیڵی گوگڵەکەت بنووسە بۆ بەردەوام بوون.",
+    email: "ئیمەیڵ",
+    sendCode: "ناردنی کۆدی سەلماندن",
+    enterCode: "کۆدی ٤ ژمارەیی بنووسە",
+    verify: "سەلماندن و چوونە ژوورەوە",
+    mockNotice: "تێبینی: ئەمە تاقیکردنەوەیە. هەر کۆدێکی ٤ ژمارەیی کاردەکات.",
+    dashboard: "پێشاندەری مامۆستا",
+    setup: "ڕێکخستنی یاری",
+    liveControl: "کۆنتڕۆڵی ڕاستەوخۆ",
+    projector: "پڕۆژێکتۆر",
+    logout: "چوونە دەرەوە",
+    popProjector: "کردنەوەی پڕۆژێکتۆر",
+    compType: "جۆری پێشبڕکێ",
+    questions: "بانکی پرسیارەکان",
+    settings: "ڕێکخستنەکان",
+    slides: "سلایدەکانی گوگڵ",
+    pasteSlides: "لینکی سلایدی گوگڵ دابنێ (ئارەزوومەندانە)",
+    slidesSub: "لینکی بڵاوکراوە یان لینکی ئاسایی دابنێ بۆ پیشاندانی وانە لەکاتی یارییەکەدا.",
+    startSession: "دەستپێکردن",
+    showSlides: "پیشاندانی وانە",
+    showGame: "پیشاندانی یاری / نەخشە",
+    nextQ: "پرسیاری داهاتوو",
+    revealQ: "پیشاندانی پرسیار",
+    endGame: "کۆتایی یاری",
+    waitingPlayers: "چاوەڕێی یاریزانەکان دەکرێت...",
+    joinCode: "کۆدی بەشداریکردن:",
+    scanToJoin: "سکان بکە یان بڕۆ بۆ لینکەکە",
+    studentWait: "سەیری پڕۆژێکتۆرەکە بکە...",
+    studentLocked: "وەڵامەکە تۆمارکرا!",
+    correct: "ڕاستە!",
+    incorrect: "هەڵەیە",
+    timeUp: "کات تەواو بوو!",
+    teamName: "ناوی تیم",
+    join: "بەشداریکردن",
+    map: "نەخشەی ڕاستەوخۆ",
+    fullScreen: "پڕکردنی شاشە"
+  }
+};
 
-<script type="module">
+let currentLang = 'ku'; // Default to Kurdish as requested
+function t(key) { return DICT[currentLang][key] || DICT['en'][key] || key; }
 
-// ============================================================
-// SUPABASE CONFIGURATION
-// Replace these with your actual Supabase project keys!
-// ============================================================
-const SUPABASE_URL = 'https://wmhuetfqmlpobbnsqorr.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtaHVldGZxbWxwb2JibnNxb3JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMzcxNTgsImV4cCI6MjA5OTcxMzE1OH0.f_a247jJYG2edXuAr4kNTqrbo03mbOXLEgCAmHkjgfU';
+// --- KURDISH QUESTION BANK PRESETS ---
+const PRESETS = {
+  city: {
+    icon: '🏙️',
+    title: { en: 'Cities of Iraq', ku: 'شارەکانی عێراق' },
+    checkpoints: [{lat: 36.19, lng: 44.00, name: 'Erbil'}, {lat: 35.55, lng: 45.43, name: 'Sulaymaniyah'}, {lat: 33.31, lng: 44.36, name: 'Baghdad'}],
+    questions: [
+      { q: "پایتەختی هەرێمی کوردستان کام شارەیە؟", opts: ["هەولێر", "سلێمانی", "دهۆک", "هەڵەبجە"], ans: 0 },
+      { q: "کام شار بە 'پایتەختی ڕۆشنبیری' ناسراوە؟", opts: ["هەولێر", "بەغدا", "سلێمانی", "کەرکوک"], ans: 2 },
+      { q: "شاری بەغدا دەکەوێتە سەر کام ڕووبار؟", opts: ["فورات", "دیجلە", "زێی گەورە", "سیروان"], ans: 1 },
+      { q: "قەڵای دێرینی هەولێر تەمەنی نزیکەی چەندە؟", opts: ["١٠٠٠ ساڵ", "٢٠٠٠ ساڵ", "٦٠٠٠ ساڵ", "٥٠٠ ساڵ"], ans: 2 },
+      { q: "کام شارە بە نەوتەکەی بەناوبانگە؟", opts: ["کەرکوک", "زاخۆ", "هەڵەبجە", "سۆران"], ans: 0 }
+    ]
+  },
+  mountain: {
+    icon: '⛰️',
+    title: { en: 'Mountains', ku: 'چیاکان' },
+    checkpoints: [{lat: 36.73, lng: 44.75, name: 'Halgurd'}, {lat: 37.00, lng: 44.00, name: 'Gara'}, {lat: 35.31, lng: 46.00, name: 'Hawraman'}],
+    questions: [
+      { q: "بەرزترین چیای عێراق کامەیە؟", opts: ["پیرەمەگرون", "هەڵگورد", "سەفین", "کۆڕەک"], ans: 1 },
+      { q: "چیای سەفین دەکەوێتە نزیک کام شارۆچکە؟", opts: ["شەقڵاوە", "ڕواندز", "ئامێدی", "کەلار"], ans: 0 },
+      { q: "بەرزی چیای هەڵگورد چەندە؟", opts: ["٣٠٠٠ مەتر", "٢٥٠٠ مەتر", "٣٦٠٧ مەتر", "٤٠٠٠ مەتر"], ans: 2 },
+      { q: "کام چیا بەفری زۆری لێ دەبارێت لە زستاندا و خەڵک بۆ خلیسکێنە دەچن؟", opts: ["کۆڕەک", "گۆیژە", "ئەزمەڕ", "هەنجیرە"], ans: 0 },
+      { q: "چیای حەسەن بەگ دەکەوێتە کوێ؟", opts: ["دەڤەری سۆران", "شارباژێڕ", "گەرمیان", "بادینان"], ans: 0 }
+    ]
+  },
+  river: {
+    icon: '🌊',
+    title: { en: 'Rivers', ku: 'ڕووبارەکان' },
+    checkpoints: [{lat: 36.85, lng: 44.40, name: 'Great Zab'}, {lat: 35.90, lng: 40.20, name: 'Euphrates'}, {lat: 31.00, lng: 47.40, name: 'Shatt al-Arab'}],
+    questions: [
+      { q: "درێژترین ڕووبار لە عێراق کامەیە؟", opts: ["دیجلە", "فورات", "زێی بچوک", "سیروان"], ans: 1 },
+      { q: "زێی گەورە دەڕژێتە ناو کام ڕووبارەوە؟", opts: ["فورات", "سیروان", "دیجلە", "خاپوور"], ans: 2 },
+      { q: "یەکگرتنی دیجلە و فورات چی پێکدەهێنێت؟", opts: ["زێی گەورە", "شەتولعەرەب", "ڕووباری کارون", "دەریاچەی دوکان"], ans: 1 },
+      { q: "کام ڕووبار بە ناو شاری زاخۆدا تێدەپەڕێت؟", opts: ["خاپوور", "زێی بچوک", "سیروان", "ئاوەسپی"], ans: 0 },
+      { q: "بەنداوەی دەربەندیخان لەسەر کام ڕووبار دروستکراوە؟", opts: ["دیجلە", "زێی بچوک", "سیروان", "فورات"], ans: 2 }
+    ]
+  },
+  space: {
+    icon: '🚀',
+    title: { en: 'Space', ku: 'بۆشایی ئاسمان' },
+    checkpoints: [{lat: 0, lng: 0, name: 'Earth'}, {lat: 10, lng: 10, name: 'Moon'}, {lat: 20, lng: 20, name: 'Mars'}],
+    questions: [
+      { q: "نزیکترین هەسارە لە خۆرەوە کامەیە؟", opts: ["زەوی", "مەریخ", "عەتارید (Mercury)", "ڤینۆس (Venus)"], ans: 2 },
+      { q: "گەورەترین هەسارەی کۆمەڵەی خۆر کامەیە؟", opts: ["موشتەری (Jupiter)", "زوحەل (Saturn)", "زەوی", "ئۆرانۆس"], ans: 0 },
+      { q: "مانگ چەند ڕۆژی پێدەچێت بۆ سوڕانەوە بەدەوری زەویدا؟", opts: ["١٠ ڕۆژ", "نزیکەی ٢٨ ڕۆژ", "٣٦٥ ڕۆژ", "١ ساڵ"], ans: 1 },
+      { q: "کام هەسارە بە 'هەسارەی سوور' ناسراوە؟", opts: ["زەوی", "مەریخ", "زوحەل", "نێپتۆن"], ans: 1 },
+      { q: "خۆر لە چی پێکهاتووە بە زۆری؟", opts: ["بەرد", "ئاو", "گازی هایدرۆجین و هێلیۆم", "ئاسن"], ans: 2 }
+    ]
+  },
+  ocean: {
+    icon: '🐋',
+    title: { en: 'Oceans', ku: 'زەریاکان' },
+    checkpoints: [{lat: 0, lng: 0, name: 'Pacific'}, {lat: 20, lng: 0, name: 'Atlantic'}, {lat: 40, lng: 0, name: 'Indian'}],
+    questions: [
+      { q: "گەورەترین زەریا لە جیهاندا کامەیە؟", opts: ["زەریای ئەتڵەسی", "زەریای هیندی", "زەریای هێمن", "زەریای بەستەڵەکی باکوور"], ans: 2 },
+      { q: "قووڵترین خاڵی زەریاکان چی پێ دەوترێت؟", opts: ["کەنداو", "ماریانا ترێنچ", "کەنار دەریا", "شەپۆل"], ans: 1 },
+      { q: "چەند لە سەدی ڕووی زەوی بە ئاو داپۆشراوە؟", opts: ["نزیکەی ٥٠٪", "نزیکەی ٧١٪", "نزیکەی ٣٠٪", "نزیکەی ٩٠٪"], ans: 1 },
+      { q: "گەورەترین ئاژەڵی ناو زەریاکان کامەیە؟", opts: ["قرش", "نەهەنگی شین", "دۆلفین", "هەشتپێ"], ans: 1 },
+      { q: "ڕێژەی خوێ لە کام دەریادا زۆرترینە؟", opts: ["دەریای ناوەڕاست", "دەریای مردوو (Dead Sea)", "دەریای سوور", "دەریای ڕەش"], ans: 1 }
+    ]
+  },
+  climate: {
+    icon: '🌤️',
+    title: { en: 'Climate', ku: 'کەش و هەوا' },
+    checkpoints: [{lat: 0, lng: 0, name: 'Desert'}, {lat: 20, lng: 0, name: 'Forest'}, {lat: 40, lng: 0, name: 'Polar'}],
+    questions: [
+      { q: "وشکترین ناوچەکانی سەر زەوی پێیان دەوترێت چی؟", opts: ["دارستان", "بیابان", "دەشتایی", "چیایی"], ans: 1 },
+      { q: "گەرمبوونی گۆی زەوی بەهۆی زۆربوونی کام گازەوەیە؟", opts: ["ئۆکسجین", "نایترۆجین", "دوانۆکسیدی کاربۆن", "هێلیۆم"], ans: 2 },
+      { q: "ئامێری پێوانەکردنی پلەی گەرمی چییە؟", opts: ["تێرمۆمەتر", "بارۆمەتر", "هایگرۆمەتر", "ئەنیمۆمەتر"], ans: 0 },
+      { q: "کەشی هەرێمی کوردستان لە هاویندا چۆنە؟", opts: ["سارد و بەفراوی", "گەرم و وشک", "مامناوەند و باراناوی", "شێدار"], ans: 1 },
+      { q: "ئەو چینەی بەرگەهەوا کە زەوی دەپارێزێت لە تیشکی سەروو وەنەوشەیی پێی دەوترێت؟", opts: ["چینی ئۆزۆن", "چینی هەورەکان", "توێکڵی زەوی", "بۆشایی"], ans: 0 }
+    ]
+  }
+};
 
-const supabase = (SUPABASE_URL.indexOf('YOUR_PROJECT') === -1)
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
-
-// Notification Utility
-window.showToast = function(msg) {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = msg;
-    container.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 4000);
-}
-
-if (!supabase) {
-    window.showToast("Configuration Error: Please update SUPABASE_URL and SUPABASE_ANON_KEY inside the script tag.");
-}
-
-
-// Application State
-const urlParams = new URLSearchParams(window.location.search);
-const isProjectorMode = urlParams.get('mode') === 'projector';
-const isStudentMode = urlParams.has('join');
-const sessionCodeFromUrl = urlParams.get('code') || urlParams.get('join');
-
+// --- GLOBAL APP STATE ---
 const state = {
-  viewMode: isProjectorMode ? 'projector' : (isStudentMode ? 'student' : 'teacher'),
-  user: null, 
-  participantId: null, 
-  registered: false,
+  view: 'auth', // auth, dashboard, projector, student
+  auth: {
+    loggedIn: false,
+    email: '',
+    step: 'email' // email, code
+  },
+  session: {
+    active: false,
+    code: '',
+    type: 'city',
+    questions: [],
+    currentQ: -1,
+    status: 'setup', // setup, live, slide, results
+    slideUrl: '',
+    teams: [] // {id, name, score, ans}
+  },
+  timer: { active: false, time: 0, max: 20, interval: null }
+};
 
-  // Session state synced continuously with database
-  sessionCode: sessionCodeFromUrl,
-  phase: 'setup', // setup, lobby, live, ended
-  setupStep: 'type',
-  competitionType: null,
-  teams: [],
+// Check URL params for routing
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('view') === 'projector') {
+  state.view = 'projector';
+} else if (urlParams.get('join')) {
+  state.view = 'student';
+  state.session.code = urlParams.get('join');
+}
+
+// --- CORE FUNCTIONS ---
+function render() {
+  document.dir = currentLang === 'ku' ? 'rtl' : 'ltr';
+  const root = document.getElementById('app-root');
   
-  // Custom presentations/content (Slides/PPTX sync)
-  slides: {
-      url: '',
-      active: false,
-      currentSlide: 1,
-      sourceType: 'google' // google, raw, onedrive
-  },
-
-  // Interactive Question Engine
-  currentQuestion: {
-      text: "Which of the following describes the Erbil Citadel accurately?",
-      options: ["It is one of the oldest continuously inhabited places on Earth", "It was built entirely in the 20th century", "It is located in the mountain ranges of Ararat", "It is currently completely submerged in a river basin"],
-      correct: 0,
-      topic: "Regional History"
-  },
-  questionActive: false,
-  answersThisQuestion: {},
-
-  // Active sync handles
-  sessionSubscription: null,
-  rosterSubscription: null,
-  answersSubscription: null
-};
-
-const TYPE_PRESETS = {
-  city: { label: 'Historical City Journey', glyph: 'Route' },
-  space: { label: 'Interstellar Exploration', glyph: 'Orbit' },
-  mountain: { label: 'Apex Summit climb', glyph: 'Summit' }
-};
-
-const GROUP_COLORS = ['#d1ab54', '#76a475', '#bd5942', '#549abf'];
-const el = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const randomCode = () => Math.random().toString(36).substring(2, 7).toUpperCase();
-
-
-function renderAll() {
-    const appContainer = el('app');
-    if (!appContainer) return;
-
-    // Check Authentication for Teacher setup
-    if (state.viewMode === 'teacher' && !state.user) {
-        appContainer.innerHTML = renderAuthScreen();
-        return;
-    }
-
-    if (state.viewMode === 'teacher') renderTeacher(appContainer);
-    else if (state.viewMode === 'projector') renderProjector(appContainer);
-    else if (state.viewMode === 'student') renderStudent(appContainer);
+  if (state.view === 'auth') {
+    root.innerHTML = renderAuth();
+  } else if (state.view === 'dashboard') {
+    root.innerHTML = renderDashboard();
+    if(state.session.status === 'live' || state.session.status === 'results') initMap('teacher-map');
+  } else if (state.view === 'projector') {
+    root.innerHTML = renderProjector();
+    if(state.session.status === 'live') initMap('proj-map');
+  } else if (state.view === 'student') {
+    root.innerHTML = renderStudent();
+  }
 }
 
-// Supabase Google Auth
-async function handleGoogleLogin() {
-    if (!supabase) {
-        window.showToast("Developer: Connect Supabase details to enable authorization features.");
-        return;
-    }
-    try {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: window.location.origin + window.location.pathname
-            }
-        });
-        if (error) throw error;
-    } catch (e) {
-        console.error("Login Error:", e);
-        window.showToast("OAuth login failed to trigger. Verify setup details.");
-    }
+function setLang(lang) {
+  currentLang = lang;
+  render();
 }
 
-// Session sync handlers
-async function syncTeacherStateToSupabase() {
-    if (!supabase || !state.sessionCode) return;
-    const payload = {
-        phase: state.phase,
-        slides: state.slides,
-        questionActive: state.questionActive,
-        competitionType: state.competitionType,
-        currentQuestion: state.currentQuestion,
-        updatedAt: Date.now()
-    };
-    try {
-        await supabase.from('lj_sessions').upsert({
-            code: state.sessionCode,
-            snapshot: payload,
-            updated_at: new Date().toISOString()
-        });
-    } catch (e) { console.error("Snapshot error:", e); }
+// --- MOCK AUTH SYSTEM (NO FIREBASE) ---
+function handleAuthEmail(e) {
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value;
+  if(email.includes('@')) {
+    state.auth.email = email;
+    state.auth.step = 'code';
+    render();
+  }
 }
 
-function listenToSession(code) {
-    if (!supabase || !code) return;
-    if (state.sessionSubscription) supabase.removeChannel(state.sessionSubscription);
-
-    state.sessionSubscription = supabase
-        .channel('session_live_sync')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'lj_sessions', filter: `code=eq.${code}` }, (payload) => {
-            const data = payload.new.snapshot;
-            if (data) {
-                state.phase = data.phase || state.phase;
-                state.slides = data.slides || state.slides;
-                state.questionActive = data.questionActive || false;
-                state.currentQuestion = data.currentQuestion || state.currentQuestion;
-                state.competitionType = data.competitionType || state.competitionType;
-                renderAll();
-            }
-        })
-        .subscribe();
+function handleAuthCode(e) {
+  e.preventDefault();
+  // Accept any 4 digit code for simulation
+  const inputs = document.querySelectorAll('.code-inputs input');
+  let code = '';
+  inputs.forEach(i => code += i.value);
+  
+  if(code.length === 4) {
+    state.auth.loggedIn = true;
+    state.view = 'dashboard';
+    // Init default questions
+    state.session.questions = JSON.parse(JSON.stringify(PRESETS[state.session.type].questions));
+    render();
+  }
 }
 
-function listenToRoster() {
-    if (!supabase || !state.sessionCode) return;
-    if (state.rosterSubscription) supabase.removeChannel(state.rosterSubscription);
-
-    state.rosterSubscription = supabase
-        .channel('roster_live_sync')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lj_roster', filter: `code=eq.${state.sessionCode}` }, (payload) => {
-            const team = payload.new;
-            if (!state.teams.find(t => t.id === team.id)) {
-                state.teams.push({
-                    id: team.id,
-                    name: team.name,
-                    gender: team.gender,
-                    color: GROUP_COLORS[state.teams.length % GROUP_COLORS.length]
-                });
-                renderAll();
-            }
-        })
-        .subscribe();
+function renderAuth() {
+  const isEmail = state.auth.step === 'email';
+  return `
+    <div class="top-bar">
+      <div style="font-weight: bold; color: var(--primary);">${t('appName')}</div>
+      <div class="lang-switch">
+        <button class="${currentLang === 'en' ? 'active' : ''}" onclick="setLang('en')">EN</button>
+        <button class="${currentLang === 'ku' ? 'active' : ''}" onclick="setLang('ku')">کوردی</button>
+      </div>
+    </div>
+    <div class="auth-screen">
+      <div class="card auth-card">
+        <div class="auth-logo">LJ</div>
+        <h2>${t('loginTitle')}</h2>
+        <p class="auth-subtitle">${t('loginSub')}</p>
+        
+        ${isEmail ? `
+          <form onsubmit="handleAuthEmail(event)">
+            <div class="field text-start">
+              <label>${t('email')}</label>
+              <input type="email" id="auth-email" class="input" placeholder="teacher@school.edu" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">${t('sendCode')}</button>
+          </form>
+        ` : `
+          <form onsubmit="handleAuthCode(event)">
+            <p style="margin-bottom: 15px; font-weight: bold;">Code sent to ${state.auth.email}</p>
+            <div class="code-inputs">
+              <input type="text" maxlength="1" onkeyup="moveFocus(this, 1)">
+              <input type="text" maxlength="1" onkeyup="moveFocus(this, 2)">
+              <input type="text" maxlength="1" onkeyup="moveFocus(this, 3)">
+              <input type="text" maxlength="1">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">${t('verify')}</button>
+            <p class="text-muted" style="font-size: 12px; margin-top: 15px;">${t('mockNotice')}</p>
+          </form>
+        `}
+      </div>
+    </div>
+  `;
 }
 
-async function joinSession(name, gender) {
-    if (!supabase || !state.sessionCode) return;
-    const id = 'student-' + Math.random().toString(36).substr(2, 9);
-    try {
-        const { error } = await supabase.from('lj_roster').insert({
-            id: id,
-            code: state.sessionCode,
-            name: name,
-            gender: gender
-        });
-        if (error) throw error;
-        state.participantId = id;
-        state.registered = true;
-        window.showToast("Joined session!");
-        renderAll();
-    } catch (e) {
-        console.error(e);
-        window.showToast("Failed to connect to the session.");
-    }
+function moveFocus(el, next) {
+  if (el.value.length === 1) {
+    el.parentElement.children[next]?.focus();
+  }
 }
 
+function renderDashboard() {
+  return `
+    <div class="top-bar">
+      <div style="font-weight: bold; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+        <span style="background: var(--primary); color: white; padding: 4px 8px; border-radius: 6px;">LJ</span>
+        ${t('dashboard')}
+      </div>
+      <div class="flex items-center gap-4">
+        <button class="btn btn-outline" onclick="popProjector()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+          ${t('popProjector')}
+        </button>
+        <div class="lang-switch">
+          <button class="${currentLang === 'en' ? 'active' : ''}" onclick="setLang('en')">EN</button>
+          <button class="${currentLang === 'ku' ? 'active' : ''}" onclick="setLang('ku')">کوردی</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="dashboard-layout">
+      <div class="card" style="position: sticky; top: 80px;">
+        <div class="sidebar-menu">
+          <button class="menu-item ${state.session.status === 'setup' ? 'active' : ''}" onclick="state.session.status='setup';render()">1. ${t('setup')}</button>
+          <button class="menu-item ${state.session.status !== 'setup' ? 'active' : ''}" ${!state.session.active ? 'disabled' : ''}>2. ${t('liveControl')}</button>
+        </div>
+      </div>
+      
+      <div>
+        ${state.session.status === 'setup' ? renderSetup() : renderLiveControl()}
+      </div>
+    </div>
+  `;
+}
 
-function renderAuthScreen() {
-    return `
-    <div class="auth-container">
-        <div class="card auth-card">
-            <div class="eyebrow" style="justify-content: center; margin-bottom: 12px;">Learning Journeys Pro</div>
-            <h1>Teacher Portal</h1>
-            <p>Conduct highly engaging classroom journeys. Display dynamic slides and let students compete inside interactive lessons in real-time.</p>
-            <button class="btn google" style="width: 100%; font-size: 16px; padding: 14px;" data-action="auth-login">
-                <svg viewBox="0 0 48 48">
-                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                </svg>
-                Continue with Google
+function setCompType(type) {
+  state.session.type = type;
+  state.session.questions = JSON.parse(JSON.stringify(PRESETS[type].questions));
+  render();
+}
+
+function processSlideUrl(url) {
+  // Convert standard share link to embed if possible
+  if (url.includes('/edit?usp=sharing')) {
+    return url.replace('/edit?usp=sharing', '/embed?start=false&loop=false&delayms=3000');
+  }
+  return url;
+}
+
+function renderSetup() {
+  const tPresets = Object.keys(PRESETS).map(k => `
+    <div class="preset-card ${state.session.type === k ? 'active' : ''}" onclick="setCompType('${k}')">
+      <div class="preset-icon">${PRESETS[k].icon}</div>
+      <div style="font-weight: bold;">${PRESETS[k].title[currentLang]}</div>
+    </div>
+  `).join('');
+
+  const qsList = state.session.questions.map((q, i) => `
+    <div class="q-item">
+      <div class="q-item-header">
+        <span style="font-weight: bold;">${i+1}. ${q.q}</span>
+      </div>
+      <div class="q-options">
+        ${q.opts.map((opt, j) => `<div class="q-opt ${j === q.ans ? 'correct' : ''}">${opt}</div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="card mb-4">
+      <h3 class="mb-4">${t('compType')}</h3>
+      <div class="preset-grid">${tPresets}</div>
+    </div>
+    
+    <div class="card mb-4">
+      <h3 class="mb-4">${t('slides')}</h3>
+      <p class="text-muted mb-4" style="font-size: 14px;">${t('slidesSub')}</p>
+      <input type="url" id="slide-input" class="input" placeholder="https://docs.google.com/presentation/d/e/.../embed" value="${state.session.slideUrl}" onchange="state.session.slideUrl = processSlideUrl(this.value)">
+    </div>
+    
+    <div class="card mb-4">
+      <h3 class="mb-4">${t('questions')} (${PRESETS[state.session.type].title[currentLang]})</h3>
+      <div class="q-list">${qsList}</div>
+    </div>
+    
+    <div class="flex justify-between items-center mt-4 pt-4 border-t">
+      <p class="text-muted text-sm">Ready to invite students?</p>
+      <button class="btn btn-primary" style="font-size: 18px; padding: 12px 24px;" onclick="startGame()">
+        ${t('startSession')}
+      </button>
+    </div>
+  `;
+}
+
+function startGame() {
+  state.session.active = true;
+  state.session.status = 'live';
+  state.session.code = Math.floor(1000 + Math.random() * 9000).toString();
+  state.session.currentQ = -1;
+  state.session.teams = [
+    {id: '1', name: 'Team Alpha', score: 0, ans: null},
+    {id: '2', name: 'Team Beta', score: 0, ans: null} // Mock teams
+  ];
+  updateCrossTabs();
+  render();
+}
+
+function nextQuestion() {
+  state.session.currentQ++;
+  if(state.session.currentQ >= state.session.questions.length) {
+    state.session.status = 'results';
+  } else {
+    state.session.status = 'live';
+    state.session.teams.forEach(t => t.ans = null);
+    startTimer(20);
+    simulateAnswers();
+  }
+  updateCrossTabs();
+  render();
+}
+
+function toggleSlides() {
+  state.session.status = state.session.status === 'slide' ? 'live' : 'slide';
+  updateCrossTabs();
+  render();
+}
+
+function renderLiveControl() {
+  const isSlide = state.session.status === 'slide';
+  
+  return `
+    <div class="card mb-4" style="background: var(--primary); color: white;">
+      <div class="flex justify-between items-center">
+        <div>
+          <div style="font-size: 14px; opacity: 0.8;">${t('joinCode')}</div>
+          <div style="font-size: 32px; font-weight: bold; letter-spacing: 4px;">${state.session.code}</div>
+        </div>
+        <div style="text-align: end;">
+          <div style="font-size: 14px; opacity: 0.8;">Link</div>
+          <div style="font-weight: bold;">localhost/?join=${state.session.code}</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card mb-4">
+      <div class="flex justify-between items-center mb-4">
+        <h3>${t('liveControl')}</h3>
+        <div class="flex gap-2">
+          ${state.session.slideUrl ? `
+            <button class="btn ${isSlide ? 'btn-primary' : 'btn-outline'}" onclick="toggleSlides()">
+              ${isSlide ? t('showGame') : t('showSlides')}
             </button>
-        </div>
-    </div>`;
-}
-
-function renderTeacher(app) {
-    if (state.phase === 'setup') {
-        app.innerHTML = renderTeacherSetup();
-    } else if (state.phase === 'lobby') {
-        app.innerHTML = renderTeacherLobby();
-        setTimeout(drawLobbyQR, 150);
-    } else if (state.phase === 'live') {
-        app.innerHTML = renderTeacherLive();
-    }
-}
-
-function renderTeacherSetup() {
-    const typeChosen = !!state.competitionType;
-    return `
-    <div class="screen">
-      <div class="wrap">
-        <div class="setup-header">
-          <div class="eyebrow">Professional Dashboard</div>
-          <h1>Create Journey Route</h1>
-          <p class="sub">Set up your path parameters, integrate Google Slides or custom presentation files, and prepare your classrooms.</p>
-        </div>
-
-        <div class="step-tabs">
-          <button class="${state.setupStep === 'type' ? 'active' : ''}" data-action="setup-tab" data-step="type">1. Select Journey Theme</button>
-          <button class="${state.setupStep === 'slides' ? 'active' : ''}" data-action="setup-tab" data-step="slides" ${!typeChosen ? 'disabled' : ''}>2. Presentation Integration</button>
-        </div>
-
-        <div class="setup-body" style="padding-bottom: 120px;">
-          ${state.setupStep === 'type' ? `
-            <div class="type-grid">
-              ${Object.entries(TYPE_PRESETS).map(([key, t]) => `
-                <button class="type-card ${state.competitionType === key ? 'selected' : ''}" data-action="select-theme" data-theme="${key}">
-                  <div class="glyph">${t.glyph}</div>
-                  <h3>${t.label}</h3>
-                </button>`).join('')}
-            </div>
-          ` : `
-            <div class="card slide-sync-card">
-              <h3 style="color: var(--gold-300); margin-bottom: 8px;">Sync Presentation Medium</h3>
-              <p style="font-size: 14px; color: var(--parchment-dim); margin-bottom: 20px;">
-                Link either raw presentation slides, PowerPoint (hosted via web/OneDrive), or standard Google Slides files.
-              </p>
-              
-              <div class="field">
-                <label>Slide Document Source Type</label>
-                <select id="slide-source-select" style="margin-bottom: 14px;">
-                    <option value="google" ${state.slides.sourceType === 'google' ? 'selected' : ''}>Google Slides (Published to web)</option>
-                    <option value="raw" ${state.slides.sourceType === 'raw' ? 'selected' : ''}>Interactive Web URL / Custom HTML Slides</option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label>Published URL / Embed URL</label>
-                <input type="url" id="slides-url-input" placeholder="https://docs.google.com/presentation/d/e/.../pub" value="${esc(state.slides.url)}">
-              </div>
-
-              <button class="btn primary" data-action="save-slides-url">Verify and Link Presentation</button>
-              ${state.slides.url ? `<p style="color: var(--moss-300); font-size: 13px; margin-top: 12px; font-weight: 600;">\u2713 Live link active.</p>` : ''}
-            </div>
-          `}
+          ` : ''}
         </div>
       </div>
-
-      <div class="sticky-footer">
-        <div class="req-note">Ensure you configured theme & slides before opening.</div>
-        <button class="btn primary" data-action="open-lobby" ${!typeChosen ? 'disabled' : ''}>Open Lobby Session</button>
-      </div>
-    </div>`;
-}
-
-function renderTeacherLobby() {
-    const studentUrl = `${window.location.origin}${window.location.pathname}?join=${state.sessionCode}`;
-    const projectorUrl = `${window.location.origin}${window.location.pathname}?mode=projector&code=${state.sessionCode}`;
-
-    return `
-    <div class="screen">
-      <div class="wrap" style="padding-bottom: 100px;">
-        <div class="eyebrow">Session Lobby Code: ${state.sessionCode}</div>
-        <h1 style="font-size: 32px; margin-top: 8px;">Waiting Room Setup</h1>
-
-        <div class="card" style="margin-top: 20px; border-color: var(--gold-500);">
-            <h3 style="color: var(--gold-300); margin-bottom: 12px;">Active Display Instructions</h3>
-            <p style="font-size: 14px; color: var(--parchment-dim); margin-bottom: 16px; line-height: 1.5;">
-               Open the **Projector Window** link on your classroom display monitor/PC. Click full screen there.
-               You can then safely use your **smartphone or tablet** on this page to remotely change slides & launch live questions.
-            </p>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-               <a href="${projectorUrl}" target="_blank" class="btn primary">Launch Projector Window \u2197</a>
-               <button class="btn ghost" data-action="copy-projector-link" data-url="${projectorUrl}">Copy Projector Link</button>
-            </div>
+      
+      ${state.session.currentQ === -1 ? `
+        <div class="text-center py-8">
+          <div style="font-size: 48px; margin-bottom: 20px;">🗺️</div>
+          <h2 class="mb-4">${t('waitingPlayers')}</h2>
+          <button class="btn btn-primary btn-lg" onclick="nextQuestion()">${t('revealQ')} 1</button>
         </div>
-
-        <div class="lobby-grid">
-           <div class="card lobby-qr-card">
-              <span class="eyebrow" style="margin-bottom: 12px;">Student Quick Scan</span>
-              <canvas id="lobby-qr-canvas" width="200" height="200"></canvas>
-              <div class="lobby-code">${state.sessionCode}</div>
-           </div>
-           <div class="card">
-              <h3 style="color: var(--gold-300); margin-bottom: 12px;">Active Student Connections (${state.teams.length})</h3>
-              ${state.teams.length === 0 ? `<p style="color: var(--parchment-dim); font-size: 14px;">Waiting for participants to connect...</p>` : ''}
-              ${state.teams.map(t => `
-                 <div class="team-mini-row">
-                    <span class="flag" style="background:${t.color}"></span>
-                    <span class="tname">${esc(t.name)} (${esc(t.gender || 'Prefer not to say')})</span>
-                 </div>
-              `).join('')}
-           </div>
+      ` : `
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <div class="text-muted text-sm uppercase tracking-wide mb-2">Question ${state.session.currentQ + 1} of ${state.session.questions.length}</div>
+            <h2 style="font-size: 20px;">${state.session.questions[state.session.currentQ].q}</h2>
+          </div>
+          ${renderTimerWidget()}
         </div>
-
-        <button class="btn primary" style="margin-top: 24px; width: 100%; padding: 14px;" data-action="start-live-game">Launch Classroom Journey</button>
-      </div>
-    </div>`;
-}
-
-function renderTeacherLive() {
-    const sActive = state.slides.active;
-    const qActive = state.questionActive;
-
-    return `
-    <div class="screen">
-       <div class="wrap" style="max-width: 640px;">
-          <div class="control-header">
-             <div>
-                <span class="eyebrow">Smart Remote</span>
-                <h2 style="font-size: 24px; color: var(--gold-300);">Session ${state.sessionCode}</h2>
-             </div>
-             <button class="btn ghost small" data-action="end-session">End Game</button>
-          </div>
-
-          <div class="card" style="margin-bottom: 20px; text-align: center;">
-             <h3 style="margin-bottom: 16px; font-size: 18px; font-family: var(--font-mono); text-transform: uppercase; color: var(--gold-300);">Presentation Remote</h3>
-             
-             <div style="display: flex; flex-direction: column; gap: 12px;">
-                <button class="btn ${sActive ? 'primary' : 'ghost'}" data-action="projector-mode" data-mode="slides" ${!state.slides.url ? 'disabled' : ''}>
-                   Show Presentation Slides
-                </button>
-
-                ${sActive ? `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--pine-900); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--pine-600);">
-                   <button class="btn ghost small" data-action="prev-slide">\u2190 Back</button>
-                   <span style="font-family: var(--font-mono); font-weight: bold;">Slide Page: ${state.slides.currentSlide}</span>
-                   <button class="btn ghost small" data-action="next-slide">Next \u2192</button>
-                </div>
-                ` : ''}
-
-                <div style="height: 1px; background: var(--pine-600); margin: 8px 0;"></div>
-
-                <button class="btn ${!sActive && qActive ? 'primary' : 'ghost'}" data-action="projector-mode" data-mode="game">
-                   Show Interactive Question
-                </button>
-
-                ${!sActive ? `
-                   <div style="margin-top: 10px;">
-                      <p style="color: var(--parchment-dim); font-size: 13px; margin-bottom: 12px;">Live Submission Active</p>
-                      ${qActive ? 
-                         `<button class="btn danger" style="width: 100%;" data-action="toggle-question-active">Close Submissions</button>` :
-                         `<button class="btn primary" style="width: 100%;" data-action="toggle-question-active">Push Question to Student Phones</button>`
-                      }
-                   </div>
-                ` : ''}
-             </div>
-          </div>
-
-          <div class="card">
-             <h4 style="margin-bottom: 14px; font-size: 14px; font-family: var(--font-mono); text-transform: uppercase; color: var(--gold-300);">Connected Roster (${state.teams.length})</h4>
-             ${state.teams.map(t => `
-                 <div class="team-mini-row" style="justify-content: space-between;">
-                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="flag" style="background:${t.color}"></span>
-                        <span class="tname">${esc(t.name)}</span>
-                     </div>
-                 </div>
-             `).join('')}
-          </div>
-       </div>
-    </div>`;
-}
-
-
-function renderProjector(app) {
-    if (!state.sessionCode) {
-        app.innerHTML = `<div class="projector-frame projector-waiting"><h1>No Active Session Found</h1></div>`;
-        return;
-    }
-
-    if (!state.sessionSubscription) listenToSession(state.sessionCode);
-
-    if (state.slides.active && state.slides.url) {
-        let parsedUrl = state.slides.url;
-        if (state.slides.sourceType === 'google') {
-            // Transform Google Slides published links to secure embedded interactive formats
-            parsedUrl = state.slides.url.replace(/\/pub(\?.*)?$/, '/embed?rm=minimal');
-            if (!parsedUrl.includes('?')) parsedUrl += '?rm=minimal';
-            parsedUrl += `&slide=id.p${state.slides.currentSlide}`;
-        }
-
-        app.innerHTML = `
-        <div class="projector-frame" style="padding: 0;">
-            <div class="embed-container">
-                <iframe class="embed-iframe" src="${parsedUrl}" allowfullscreen="true"></iframe>
-            </div>
-            <button class="projector-fullscreen-btn" data-action="toggle-fullscreen">Toggle Fullscreen</button>
-        </div>`;
-    } else if (state.questionActive) {
-        app.innerHTML = `
-        <div class="projector-frame">
-            <div class="p-question-body">
-                <span class="eyebrow" style="justify-content: center; margin-bottom: 16px;">Live Interactive Question</span>
-                <div class="p-qtext">${esc(state.currentQuestion.text)}</div>
-                <div class="trail-signs">
-                  ${state.currentQuestion.options.map((option, idx) => `
-                     <div class="trail-sign" data-letter="${String.fromCharCode(65 + idx)}">${esc(option)}</div>
-                  `).join('')}
-                </div>
-            </div>
-            <button class="projector-fullscreen-btn" data-action="toggle-fullscreen">Toggle Fullscreen</button>
-        </div>`;
-    } else {
-        app.innerHTML = `
-        <div class="projector-frame projector-waiting">
-            <h1>Learning Journeys Pro</h1>
-            <p style="font-size: 22px; color: var(--parchment-dim); margin-bottom: 24px;">Please look at the main screen</p>
-            <div class="lobby-code" style="font-size: 52px; padding: 12px 36px; background: var(--pine-800); border: 2px solid var(--gold-500); border-radius: var(--radius-md); display: inline-block;">${state.sessionCode}</div>
-            <button class="projector-fullscreen-btn" data-action="toggle-fullscreen">Toggle Fullscreen</button>
-        </div>`;
-    }
-}
-
-
-function renderStudent(app) {
-    if (!state.registered) {
-        app.innerHTML = `
-        <div class="student-screen">
-            <div class="card" style="margin-top: 40px;">
-                <span class="eyebrow" style="justify-content: center; margin-bottom: 16px;">Registration Portal</span>
-                <h2 style="font-size: 24px; text-align: center; margin-bottom: 20px;">Team Entry</h2>
-                
-                <div class="field">
-                   <label>Group / Team Name</label>
-                   <input type="text" id="student-name-input" placeholder="e.g., Mountain Rangers">
-                </div>
-
-                <div class="field">
-                   <label>Gender Group Selection</label>
-                   <select id="student-gender-input">
-                      <option value="Mixed">Mixed Group</option>
-                      <option value="Female">All Female</option>
-                      <option value="Male">All Male</option>
-                      <option value="Individual">Individual Participant</option>
-                   </select>
-                </div>
-
-                <button class="btn primary" style="width: 100%; margin-top: 10px; padding: 14px;" data-action="student-join">Connect to Room</button>
-            </div>
-        </div>`;
-        return;
-    }
-
-    const badge = `
-    <div class="student-badge">
-       <span class="flag" style="background: var(--gold-500)"></span>
-       <div class="name">Session Code: ${state.sessionCode}</div>
-    </div>`;
-
-    if (state.slides.active) {
-        app.innerHTML = `
-        <div class="student-screen">
-            ${badge}
-            <div class="card" style="text-align: center; margin-top: 20px;">
-                <h3 style="color: var(--gold-300);">Presentation Mode</h3>
-                <p style="margin-top: 12px; color: var(--parchment-dim); line-height: 1.5;">The presentation is currently playing on the projector screen. Keep your eyes on the main board!</p>
-            </div>
-        </div>`;
-        return;
-    }
-
-    if (state.questionActive) {
-        app.innerHTML = `
-        <div class="student-screen">
-             ${badge}
-             <h2 style="font-size: 20px; margin-bottom: 20px; line-height: 1.4;">${esc(state.currentQuestion.text)}</h2>
-             <div class="trail-signs">
-                ${state.currentQuestion.options.map((option, idx) => `
-                    <button class="trail-sign" data-action="submit-answer" data-index="${idx}" data-letter="${String.fromCharCode(65 + idx)}">
-                        ${esc(option)}
-                    </button>
-                `).join('')}
-             </div>
-        </div>`;
-        return;
-    }
-
-    app.innerHTML = `
-    <div class="student-screen">
-        ${badge}
-        <div class="card" style="text-align: center;">
-             <p style="color: var(--parchment-dim);">Waiting for the next presentation segment or interactive question...</p>
+        
+        <div class="map-container" id="teacher-map"></div>
+        
+        <div class="mt-4 flex justify-between items-center">
+          <div class="text-muted">${state.session.teams.filter(t=>t.ans!==null).length} / ${state.session.teams.length} answered</div>
+          <button class="btn btn-primary" onclick="nextQuestion()">${state.session.currentQ >= state.session.questions.length -1 ? t('endGame') : t('nextQ')}</button>
         </div>
-    </div>`;
+      `}
+    </div>
+  `;
 }
 
-function drawLobbyQR() {
-    const canvas = el('lobby-qr-canvas');
-    if (canvas && typeof QRious !== 'undefined') {
-        new QRious({
-            element: canvas,
-            value: `${window.location.origin}${window.location.pathname}?join=${state.sessionCode}`,
-            size: 200,
-            background: '#f0ebd9',
-            foreground: '#071610',
-            level: 'H'
-        });
+// Timer Logic
+function startTimer(seconds) {
+  clearInterval(state.timer.interval);
+  state.timer.active = true;
+  state.timer.max = seconds;
+  state.timer.time = seconds;
+  
+  state.timer.interval = setInterval(() => {
+    state.timer.time--;
+    if(state.timer.time <= 0) {
+      clearInterval(state.timer.interval);
+      state.timer.active = false;
+      checkAnswers();
     }
+    renderTimerOnly();
+    updateCrossTabs();
+  }, 1000);
 }
 
-function copyToClipboard(text) {
-    const elDummy = document.createElement('textarea');
-    elDummy.value = text;
-    document.body.appendChild(elDummy);
-    elDummy.select();
-    try {
-        document.execCommand('copy');
-        window.showToast("Projector room link copied!");
-    } catch (e) { console.error(e); }
-    document.body.removeChild(elDummy);
+function renderTimerWidget() {
+  const pct = state.timer.time / state.timer.max;
+  const dash = 251.2; // 2 * pi * 40
+  const offset = dash - (pct * dash);
+  const urgent = state.timer.time <= 5;
+  
+  return `
+    <div class="timer-ring" id="live-timer">
+      <svg viewBox="0 0 100 100">
+        <circle class="timer-circle-bg" cx="50" cy="50" r="40"></circle>
+        <circle class="timer-circle ${urgent?'urgent':''}" cx="50" cy="50" r="40" stroke-dasharray="${dash}" stroke-dashoffset="${offset}"></circle>
+      </svg>
+      <div class="timer-text ${urgent?'urgent':''}">${state.timer.time}</div>
+    </div>
+  `;
+}
+
+function renderTimerOnly() {
+  const el = document.getElementById('live-timer');
+  if(el) el.outerHTML = renderTimerWidget();
+  const projEl = document.getElementById('proj-timer');
+  if(projEl) projEl.outerHTML = renderTimerWidget();
+}
+
+function simulateAnswers() {
+  // Mock remote students answering
+  setTimeout(() => {
+    if(state.timer.active) state.session.teams[0].ans = Math.floor(Math.random() * 4);
+    updateCrossTabs();
+    render();
+  }, 3000);
+  setTimeout(() => {
+    if(state.timer.active) state.session.teams[1].ans = state.session.questions[state.session.currentQ].ans; // Usually correct
+    updateCrossTabs();
+    render();
+  }, 5000);
+}
+
+function checkAnswers() {
+  const q = state.session.questions[state.session.currentQ];
+  state.session.teams.forEach(t => {
+    if(t.ans === q.ans) t.score++;
+  });
+  updateCrossTabs();
+  render();
+}
+
+function popProjector() {
+  window.open(window.location.href + '?view=projector', '_blank', 'width=1024,height=768');
 }
 
 function toggleFullScreen() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            window.showToast(`Full-screen activation failure: ${err.message}`);
-        });
-    } else {
-        document.exitFullscreen();
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+    });
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
     }
+  }
 }
 
+function renderProjector() {
+  // Sync state from localStorage for pop-out
+  syncStateFromStorage();
+  
+  if (!state.session.active) {
+    return `
+      <div class="projector-view" style="background: var(--text-main);">
+        <div class="proj-content">
+          <div>
+            <h1 style="font-size: 5vw; color: white; margin-bottom: 20px;">${t('appName')}</h1>
+            <p style="color: var(--text-muted); font-size: 2vw;">${t('waitingPlayers')}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
-document.addEventListener('click', (e) => {
-    const actionBtn = e.target.closest('[data-action]');
-    if (!actionBtn) return;
-    const action = actionBtn.dataset.action;
+  if (state.session.status === 'slide' && state.session.slideUrl) {
+    return `
+      <div class="projector-view">
+        <div class="slide-iframe-container">
+          <iframe src="${state.session.slideUrl}" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
+        </div>
+        <button class="btn btn-outline" style="position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none;" onclick="toggleFullScreen()">${t('fullScreen')}</button>
+      </div>
+    `;
+  }
 
-    if (action === 'auth-login') {
-        handleGoogleLogin();
+  if (state.session.currentQ === -1) {
+     return `
+      <div class="projector-view" style="background: var(--text-main);">
+        <div class="proj-content">
+          <div>
+             <div style="font-size: 2vw; color: var(--accent); margin-bottom: 10px; font-family: monospace;">${t('joinCode')}</div>
+             <div style="font-size: 8vw; color: white; font-weight: bold; letter-spacing: 10px; margin-bottom: 40px;">${state.session.code}</div>
+             <div style="font-size: 2vw; color: var(--text-muted);">${t('scanToJoin')}</div>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none;" onclick="toggleFullScreen()">${t('fullScreen')}</button>
+      </div>
+    `;
+  }
+
+  const q = state.session.questions[state.session.currentQ];
+  const showAnswer = !state.timer.active;
+  
+  return `
+    <div class="projector-view" style="background: var(--text-main);">
+      <div class="proj-header">
+         <div style="font-size: 1.5vw; color: var(--text-muted);">${PRESETS[state.session.type].title[currentLang]}</div>
+         <div style="display: flex; align-items: center; gap: 20px;">
+            <div style="font-size: 1.5vw;">Join: <strong>${state.session.code}</strong></div>
+            <button class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: white; border: none;" onclick="toggleFullScreen()">⛶</button>
+         </div>
+      </div>
+      <div class="proj-content" style="flex-direction: column;">
+        <div class="proj-q-text">${q.q}</div>
+        
+        <div style="display: flex; gap: 40px; align-items: center; width: 100%; max-width: 1200px;">
+          <div style="flex: 1;">
+            <div class="proj-options">
+              ${q.opts.map((opt, i) => `
+                <div class="proj-opt ${showAnswer && i === q.ans ? 'reveal-correct' : ''}">
+                  <span style="opacity: 0.5; margin-inline-end: 15px;">${['A','B','C','D'][i]}</span> ${opt}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div style="width: 120px;">
+            ${renderTimerWidget().replace('id="live-timer"', 'id="proj-timer"')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function joinStudent(e) {
+  e.preventDefault();
+  const name = document.getElementById('student-name').value;
+  if(name) {
+    state.session.myTeam = {id: 'me', name: name, score: 0, ans: null};
+    state.session.active = true; // Mock joined
+    render();
+  }
+}
+
+function selectAnswer(idx) {
+  if(!state.timer.active || state.session.myTeam.ans !== null) return;
+  state.session.myTeam.ans = idx;
+  render();
+}
+
+function renderStudent() {
+  if (!state.session.myTeam) {
+    return `
+      <div class="student-view" style="justify-content: center;">
+        <div class="card text-center" style="padding: 40px 20px;">
+          <h2 class="mb-4">${t('join')}</h2>
+          <form onsubmit="joinStudent(event)">
+            <div class="field text-start">
+              <label>${t('teamName')}</label>
+              <input type="text" id="student-name" class="input" required>
+            </div>
+            <button class="btn btn-primary" style="width:100%; font-size: 18px; padding: 15px;">Go</button>
+          </form>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Sync state
+  syncStateFromStorage();
+
+  if (state.session.status === 'slide') {
+    return `<div class="student-view"><div class="card text-center" style="margin: auto;"><h3>${t('studentWait')}</h3></div></div>`;
+  }
+
+  if (state.session.currentQ === -1) {
+    return `
+      <div class="student-view">
+        <div class="student-header">
+           <div style="font-weight: bold;">${state.session.myTeam.name}</div>
+           <div class="text-muted">Score: ${state.session.myTeam.score}</div>
+        </div>
+        <div class="card text-center" style="margin: auto;">
+          <h3 class="text-muted">${t('waitingPlayers')}</h3>
+        </div>
+      </div>
+    `;
+  }
+
+  const q = state.session.questions[state.session.currentQ];
+  const myAns = state.session.myTeam.ans;
+  const isLocked = myAns !== null;
+  const timeUp = !state.timer.active;
+  
+  let feedback = '';
+  if (timeUp && isLocked) {
+    feedback = myAns === q.ans ? `<div style="color: var(--success); font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;">${t('correct')}</div>` 
+                               : `<div style="color: var(--danger); font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;">${t('incorrect')}</div>`;
+  }
+
+  return `
+    <div class="student-view">
+      <div class="student-header">
+         <div style="font-weight: bold;">${state.session.myTeam.name}</div>
+         <div class="text-muted">Score: ${state.session.myTeam.score}</div>
+      </div>
+      
+      ${feedback}
+      
+      ${(!timeUp && isLocked) ? `
+        <div class="card text-center" style="margin: auto;">
+          <h3 style="color: var(--primary);">${t('studentLocked')}</h3>
+          <p class="text-muted mt-4">${t('studentWait')}</p>
+        </div>
+      ` : `
+        <div style="margin-bottom: 20px;">
+           <h3 style="font-size: 22px; line-height: 1.4;">${q.q}</h3>
+        </div>
+        <div>
+          ${q.opts.map((opt, i) => `
+            <button class="student-btn ${myAns === i ? 'selected' : ''}" onclick="selectAnswer(${i})" ${timeUp || isLocked ? 'disabled' : ''}>
+              <div class="student-btn-letter">${['A','B','C','D'][i]}</div>
+              <span>${opt}</span>
+            </button>
+          `).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+// --- Map Initialization (Leaflet) ---
+let mapInstance = null;
+function initMap(containerId) {
+  setTimeout(() => {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    
+    if (mapInstance) { mapInstance.remove(); }
+    
+    mapInstance = L.map(el, { zoomControl: false, attributionControl: false }).setView([35.0, 44.0], 6); // Centered on Iraq/Kurdistan
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mapInstance);
+    
+    const cps = PRESETS[state.session.type].checkpoints;
+    const latlngs = cps.map(c => [c.lat, c.lng]);
+    
+    L.polyline(latlngs, { color: 'var(--primary)', weight: 3, dashArray: '5, 10' }).addTo(mapInstance);
+    
+    cps.forEach((cp, i) => {
+      L.circleMarker([cp.lat, cp.lng], { radius: 8, color: 'white', weight: 2, fillColor: 'var(--primary)', fillOpacity: 1 })
+       .addTo(mapInstance).bindTooltip(cp.name, {permanent: true, direction: 'top', className: 'map-label'});
+    });
+    
+    mapInstance.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50] });
+  }, 100);
+}
+
+// --- Cross-Tab Sync Simulation ---
+// Using localStorage events to sync state between Teacher Dashboard and Pop-out Projector
+function updateCrossTabs() {
+  localStorage.setItem('lj_state_sync', JSON.stringify({
+    session: state.session,
+    timer: state.timer
+  }));
+}
+
+function syncStateFromStorage() {
+  try {
+    const synced = JSON.parse(localStorage.getItem('lj_state_sync'));
+    if(synced) {
+      state.session = synced.session;
+      state.timer = synced.timer;
     }
+  } catch(e) {}
+}
 
-    if (action === 'setup-tab') {
-        state.setupStep = actionBtn.dataset.step;
-        renderAll();
-    }
-
-    if (action === 'select-theme') {
-        state.competitionType = actionBtn.dataset.theme;
-        renderAll();
-    }
-
-    if (action === 'save-slides-url') {
-        const inp = el('slides-url-input');
-        const src = el('slide-source-select');
-        if (inp) {
-            state.slides.url = inp.value.trim();
-            state.slides.sourceType = src ? src.value : 'google';
-            window.showToast("Slide details verified successfully!");
-            renderAll();
-        }
-    }
-
-    if (action === 'open-lobby') {
-        state.sessionCode = randomCode();
-        state.phase = 'lobby';
-        syncTeacherStateToSupabase();
-        listenToRoster();
-        renderAll();
-    }
-
-    if (action === 'copy-projector-link') {
-        copyToClipboard(actionBtn.dataset.url);
-    }
-
-    if (action === 'start-live-game') {
-        state.phase = 'live';
-        syncTeacherStateToSupabase();
-        renderAll();
-    }
-
-    if (action === 'projector-mode') {
-        state.slides.active = actionBtn.dataset.mode === 'slides';
-        state.questionActive = false;
-        syncTeacherStateToSupabase();
-        renderAll();
-    }
-
-    if (action === 'next-slide') {
-        state.slides.currentSlide++;
-        syncTeacherStateToSupabase();
-        renderAll();
-    }
-
-    if (action === 'prev-slide') {
-        if (state.slides.currentSlide > 1) {
-            state.slides.currentSlide--;
-            syncTeacherStateToSupabase();
-            renderAll();
-        }
-    }
-
-    if (action === 'toggle-question-active') {
-        state.questionActive = !state.questionActive;
-        state.slides.active = false;
-        syncTeacherStateToSupabase();
-        renderAll();
-    }
-
-    if (action === 'end-session') {
-        state.phase = 'setup';
-        state.questionActive = false;
-        state.slides.active = false;
-        state.slides.currentSlide = 1;
-        state.teams = [];
-        renderAll();
-    }
-
-    if (action === 'toggle-fullscreen') {
-        toggleFullScreen();
-    }
-
-    if (action === 'student-join') {
-        const nameVal = el('student-name-input').value.trim();
-        const genVal = el('student-gender-input').value;
-        if (nameVal) {
-            joinSession(nameVal, genVal);
-        } else {
-            window.showToast("Please supply a valid team identifier.");
-        }
-    }
-
-    if (action === 'submit-answer') {
-        window.showToast("Answer locked in! Eyes on the projector screen.");
-        state.questionActive = false;
-        renderAll();
-    }
+window.addEventListener('storage', (e) => {
+  if (e.key === 'lj_state_sync' && (state.view === 'projector' || state.view === 'student')) {
+    render();
+  }
 });
 
-// Start Session Sync on Join URL
-if (state.sessionCode) {
-    listenToSession(state.sessionCode);
-}
-
-// Initial Bootup
-renderAll();
-
+// Initial Render
+render();
 </script>
 </body>
 </html>
