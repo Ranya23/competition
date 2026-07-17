@@ -1,963 +1,1709 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ku" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Learning Journeys Pro</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Using Noto Sans Arabic for excellent Kurdish support, and Inter for English -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<style>
-:root {
-  /* Modern Professional Educational Theme */
-  --primary: #4F46E5; /* Indigo 600 */
-  --primary-hover: #4338CA;
-  --secondary: #0EA5E9; /* Sky 500 */
-  --accent: #F59E0B; /* Amber 500 */
-  
-  --bg-main: #F8FAFC; /* Slate 50 */
-  --bg-card: #FFFFFF;
-  --bg-subtle: #F1F5F9;
-  
-  --text-main: #0F172A; /* Slate 900 */
-  --text-muted: #64748B; /* Slate 500 */
-  --text-inverse: #FFFFFF;
-  
-  --success: #10B981;
-  --danger: #EF4444;
-  --warning: #F59E0B;
-  
-  --border: #E2E8F0;
-  
-  --font-en: 'Inter', sans-serif;
-  --font-ku: 'Noto Sans Arabic', sans-serif;
-  
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>گەشتی فێربوون - پلاتفۆرمی پەروەردەیی پێشکەوتوو</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Three.js for Immersive 3D Background Themes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 
-/* RTL Support for Kurdish */
-[dir="rtl"] {
-  --font-en: 'Noto Sans Arabic', sans-serif; /* Override default font for RTL */
-}
+    <style>
+        :root { 
+            --bg-color: #F8FAFC; 
+            --text-color: #1E293B; 
+            --primary: #3B82F6; 
+            --surface: #ffffff; 
+            --border: #e2e8f0; 
+        }
+        .theme-high-contrast { 
+            --bg-color: #0F172A; 
+            --text-color: #ffffff; 
+            --primary: #FBBF24; 
+            --surface: #1E293B; 
+            --border: #334155; 
+        }
+        .text-size-large { font-size: 115%; }
+        
+        body { 
+            font-family: 'Noto Kufi Arabic', Tahoma, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            -webkit-tap-highlight-color: transparent; 
+            transition: all 0.3s ease; 
+            overflow-x: hidden;
+        }
+        .surface-card { 
+            background-color: var(--surface); 
+            border-color: var(--border); 
+            transition: all 0.3s; 
+        }
+        .touch-btn { 
+            min-height: 60px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: 16px; 
+            transition: transform 0.1s, box-shadow 0.2s; 
+            user-select: none; 
+        }
+        .touch-btn:active:not(:disabled) { transform: scale(0.96); }
+        .touch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .remote-btn { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 1.2rem; 
+            border-radius: 1.5rem; 
+            font-weight: bold; 
+            transition: all 0.2s; 
+            border: 2px solid transparent; 
+        }
+        .remote-btn.active { 
+            border-color: white; 
+            transform: scale(1.05); 
+        }
 
-*, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; padding: 0; }
-body {
-  background: var(--bg-main);
-  color: var(--text-main);
-  font-family: var(--font-en);
-  -webkit-font-smoothing: antialiased;
-  display: flex;
-  flex-direction: column;
-}
+        /* Slide Transition Animations */
+        .slide-transition-fade { transition: opacity 0.6s ease-in-out; }
+        .slide-transition-zoom { transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s; }
+        .slide-transition-flip { transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+        .slide-transition-push { transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s; }
 
-h1, h2, h3, h4 { margin: 0; font-weight: 700; color: var(--text-main); }
-p { margin: 0; line-height: 1.5; }
-a { color: var(--primary); text-decoration: none; }
-button { font-family: inherit; cursor: pointer; border: none; background: none; }
+        @keyframes travelPlane { 
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; } 
+            50% { transform: translate(-40vw, -10vh) scale(1.4) rotate(-10deg); opacity: 0.9; } 
+            100% { transform: translate(-100vw, -20vh) scale(1) rotate(-20deg); opacity: 0; } 
+        }
+        @keyframes travelTrain {
+            0% { transform: translateX(100vw) scale(1); }
+            50% { transform: translateX(0vw) scale(1.1); }
+            100% { transform: translateX(-100vw) scale(1); }
+        }
+        @keyframes travelShip {
+            0% { transform: translate(100vw, 0px) rotate(0deg); }
+            50% { transform: translate(0vw, 15px) rotate(3deg); }
+            100% { transform: translate(-100vw, 0px) rotate(-3deg); }
+        }
+        @keyframes travelRoad {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            50% { transform: translateY(0vh) scale(1.2); opacity: 1; }
+            100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
+        }
+        @keyframes travelSpace {
+            0% { transform: scale(0.1) rotate(0deg); opacity: 0; }
+            50% { transform: scale(2) rotate(180deg); opacity: 1; filter: blur(1px); }
+            100% { transform: scale(4) rotate(360deg); opacity: 0; }
+        }
 
-/* Utilities */
-.wrap { max-width: 1000px; margin: 0 auto; width: 100%; padding: 0 20px; }
-.card { background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--border); padding: 20px; }
-.flex { display: flex; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-2 { gap: 8px; } .gap-4 { gap: 16px; }
-.mt-4 { margin-top: 16px; } .mb-4 { margin-bottom: 16px; }
-.text-center { text-align: center; }
-.text-muted { color: var(--text-muted); }
+        .animate-style-airplane { animation: travelPlane 4s ease-in-out forwards; }
+        .animate-style-railway { animation: travelTrain 4s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        .animate-style-ocean { animation: travelShip 5s ease-in-out forwards; }
+        .animate-style-road { animation: travelRoad 4s ease-in-out forwards; }
+        .animate-style-space { animation: travelSpace 4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+        
+        .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* UI Utilities */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .modal-overlay { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); }
+        .projector-mode { cursor: none; }
+        
+        /* Timer Progress Bar */
+        .timer-bar { transition: width 1s linear, background-color 0.5s ease; }
 
-/* Buttons */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 600; font-size: 14px;
-  transition: all 0.2s; border: 1px solid transparent; gap: 8px;
-}
-.btn-primary { background: var(--primary); color: var(--text-inverse); }
-.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-.btn-outline { border-color: var(--border); color: var(--text-main); background: var(--bg-card); }
-.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
-.btn-danger { background: var(--danger); color: white; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        /* Laser Pointer Spot & Spotlight */
+        .laser-pointer-spot {
+            background: radial-gradient(circle, rgba(239,68,68,1) 0%, rgba(239,68,68,0.8) 20%, rgba(239,68,68,0) 70%);
+            box-shadow: 0 0 15px #ef4444, 0 0 30px #ef4444;
+        }
+        .spotlight-overlay {
+            background: radial-gradient(circle 120px at var(--spot-x, 50%) var(--spot-y, 50%), transparent 100%, rgba(0,0,0,0.85) 100%);
+        }
 
-/* Forms */
-.field { margin-bottom: 16px; }
-.field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;}
-.input { width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-main); font-size: 15px; font-family: inherit; transition: border-color 0.2s; }
-.input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-textarea.input { resize: vertical; min-height: 80px; }
-
-/* Navigation / Top Bar */
-.top-bar {
-  background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 10px 20px;
-  display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;
-}
-.lang-switch { display: flex; gap: 4px; background: var(--bg-subtle); padding: 4px; border-radius: var(--radius-sm); }
-.lang-switch button { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
-.lang-switch button.active { background: var(--bg-card); color: var(--primary); box-shadow: var(--shadow-sm); }
-
-/* Authentication Screen */
-.auth-screen { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #f6f8fd 0%, #f1f5f9 100%); }
-.auth-card { width: 100%; max-width: 400px; padding: 40px 30px; text-align: center; }
-.auth-logo { width: 64px; height: 64px; background: var(--primary); color: white; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; font-weight: bold;}
-.auth-subtitle { color: var(--text-muted); margin-bottom: 30px; font-size: 14px;}
-.code-inputs { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
-.code-inputs input { width: 45px; height: 50px; text-align: center; font-size: 24px; font-weight: bold; border-radius: var(--radius-sm); border: 2px solid var(--border); background: var(--bg-main); }
-.code-inputs input:focus { border-color: var(--primary); outline: none; }
-
-/* Teacher Dashboard */
-.dashboard-layout { display: grid; grid-template-columns: 280px 1fr; gap: 24px; padding: 24px 20px; max-width: 1200px; margin: 0 auto; align-items: start;}
-@media (max-width: 768px) { .dashboard-layout { grid-template-columns: 1fr; } }
-.sidebar-menu { display: flex; flex-direction: column; gap: 8px; }
-.menu-item { padding: 12px 16px; border-radius: var(--radius-sm); font-weight: 500; color: var(--text-muted); text-align: start; transition: all 0.2s;}
-.menu-item:hover { background: var(--bg-subtle); color: var(--text-main); }
-.menu-item.active { background: var(--primary); color: white; }
-
-/* Setup Cards */
-.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.preset-card { border: 2px solid var(--border); padding: 20px; border-radius: var(--radius-md); text-align: center; transition: all 0.2s; background: var(--bg-card); cursor: pointer;}
-.preset-card:hover { border-color: var(--secondary); transform: translateY(-2px); }
-.preset-card.active { border-color: var(--primary); background: rgba(79, 70, 229, 0.05); }
-.preset-icon { font-size: 32px; margin-bottom: 10px; }
-
-/* Q&A List */
-.q-list { display: flex; flex-direction: column; gap: 12px; }
-.q-item { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); }
-.q-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-.q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; }
-.q-opt { padding: 8px; border-radius: var(--radius-sm); background: var(--bg-subtle); }
-.q-opt.correct { background: rgba(16, 185, 129, 0.1); color: var(--success); font-weight: 600; border: 1px solid rgba(16,185,129,0.3);}
-
-/* Projector View */
-.projector-view { position: fixed; inset: 0; background: var(--text-main); color: white; z-index: 1000; display: flex; flex-direction: column; }
-.proj-header { padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.proj-content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; text-align: center; position: relative; }
-.proj-q-text { font-size: 4vw; max-width: 90%; font-weight: 700; line-height: 1.3; margin-bottom: 40px; }
-.proj-options { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1000px; }
-.proj-opt { padding: 30px; font-size: 2vw; background: rgba(255,255,255,0.1); border-radius: var(--radius-md); border: 2px solid transparent; transition: all 0.3s;}
-.proj-opt.reveal-correct { background: var(--success); border-color: #fff; transform: scale(1.05); }
-
-/* Slide Iframe */
-.slide-iframe-container { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
-.slide-iframe-container iframe { width: 100%; height: 100%; border: none; }
-
-/* Student View */
-.student-view { min-height: 100vh; background: var(--bg-main); padding: 20px; display: flex; flex-direction: column; max-width: 500px; margin: 0 auto; }
-.student-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 20px;}
-.student-btn { width: 100%; padding: 20px; font-size: 18px; font-weight: 600; border-radius: var(--radius-md); background: var(--bg-card); border: 2px solid var(--border); margin-bottom: 12px; transition: all 0.2s; text-align: start; display: flex; align-items: center; gap: 15px;}
-.student-btn:active { transform: scale(0.98); }
-.student-btn.selected { border-color: var(--primary); background: rgba(79, 70, 229, 0.1); }
-.student-btn-letter { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: var(--text-muted);}
-
-/* Map */
-.map-container { width: 100%; height: 400px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); z-index: 1;}
-.proj-map-container { width: 100%; height: 60vh; max-width: 1200px; border-radius: var(--radius-lg); border: 4px solid rgba(255,255,255,0.2);}
-
-/* Timer */
-.timer-ring { position: relative; width: 80px; height: 80px; }
-.timer-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-.timer-circle-bg { fill: none; stroke: var(--border); stroke-width: 6; }
-.timer-circle { fill: none; stroke: var(--primary); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.1s linear; }
-.timer-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; }
-.timer-circle.urgent { stroke: var(--danger); }
-.timer-text.urgent { color: var(--danger); }
-
-</style>
+        /* Panoramic field trip 360 viewer style */
+        .panorama-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            overflow: hidden;
+            border-radius: 2rem;
+            cursor: grab;
+        }
+        .panorama-container:active {
+            cursor: grabbing;
+        }
+        .panorama-image {
+            position: absolute;
+            height: 100%;
+            width: 300%;
+            background-size: cover;
+            background-position: center;
+            transition: transform 0.1s ease-out;
+        }
+    </style>
 </head>
-<body>
+<body class="antialiased overflow-x-hidden h-screen w-screen flex flex-col">
 
-<div id="app-root"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script>
-// --- LOCALIZATION DICTIONARY ---
-const DICT = {
-  en: {
-    appName: "Learning Journeys Pro",
-    loginTitle: "Teacher Login",
-    loginSub: "Enter your Google Workspace email to continue.",
-    email: "Email Address",
-    sendCode: "Send Verification Code",
-    enterCode: "Enter 4-Digit Code",
-    verify: "Verify & Login",
-    mockNotice: "Note: This is a secure simulation. Any 4-digit code works for testing.",
-    dashboard: "Teacher Dashboard",
-    setup: "Game Setup",
-    liveControl: "Live Controls",
-    projector: "Projector View",
-    logout: "Logout",
-    popProjector: "Pop-out Projector",
-    compType: "Competition Type",
-    questions: "Question Bank",
-    settings: "Settings",
-    slides: "Google Slides",
-    pasteSlides: "Paste Google Slides Link (Optional)",
-    slidesSub: "Paste the 'Publish to web' embed link, or a standard sharing link to show presentations during the game.",
-    startSession: "Start Session",
-    showSlides: "Show Slides",
-    showGame: "Show Game / Map",
-    nextQ: "Next Question",
-    revealQ: "Reveal Question",
-    endGame: "End Game",
-    waitingPlayers: "Waiting for players to join...",
-    joinCode: "Join Code:",
-    scanToJoin: "Scan or go to link to join",
-    studentWait: "Look at the projector...",
-    studentLocked: "Answer locked in!",
-    correct: "Correct!",
-    incorrect: "Incorrect",
-    timeUp: "Time is up!",
-    teamName: "Team Name",
-    join: "Join Game",
-    map: "Live Map",
-    fullScreen: "Toggle Fullscreen"
-  },
-  ku: {
-    appName: "گەشتەکانی فێربوون پرۆ",
-    loginTitle: "چوونە ژوورەوەی مامۆستا",
-    loginSub: "ئیمەیڵی گوگڵەکەت بنووسە بۆ بەردەوام بوون.",
-    email: "ئیمەیڵ",
-    sendCode: "ناردنی کۆدی سەلماندن",
-    enterCode: "کۆدی ٤ ژمارەیی بنووسە",
-    verify: "سەلماندن و چوونە ژوورەوە",
-    mockNotice: "تێبینی: ئەمە تاقیکردنەوەیە. هەر کۆدێکی ٤ ژمارەیی کاردەکات.",
-    dashboard: "پێشاندەری مامۆستا",
-    setup: "ڕێکخستنی یاری",
-    liveControl: "کۆنتڕۆڵی ڕاستەوخۆ",
-    projector: "پڕۆژێکتۆر",
-    logout: "چوونە دەرەوە",
-    popProjector: "کردنەوەی پڕۆژێکتۆر",
-    compType: "جۆری پێشبڕکێ",
-    questions: "بانکی پرسیارەکان",
-    settings: "ڕێکخستنەکان",
-    slides: "سلایدەکانی گوگڵ",
-    pasteSlides: "لینکی سلایدی گوگڵ دابنێ (ئارەزوومەندانە)",
-    slidesSub: "لینکی بڵاوکراوە یان لینکی ئاسایی دابنێ بۆ پیشاندانی وانە لەکاتی یارییەکەدا.",
-    startSession: "دەستپێکردن",
-    showSlides: "پیشاندانی وانە",
-    showGame: "پیشاندانی یاری / نەخشە",
-    nextQ: "پرسیاری داهاتوو",
-    revealQ: "پیشاندانی پرسیار",
-    endGame: "کۆتایی یاری",
-    waitingPlayers: "چاوەڕێی یاریزانەکان دەکرێت...",
-    joinCode: "کۆدی بەشداریکردن:",
-    scanToJoin: "سکان بکە یان بڕۆ بۆ لینکەکە",
-    studentWait: "سەیری پڕۆژێکتۆرەکە بکە...",
-    studentLocked: "وەڵامەکە تۆمارکرا!",
-    correct: "ڕاستە!",
-    incorrect: "هەڵەیە",
-    timeUp: "کات تەواو بوو!",
-    teamName: "ناوی تیم",
-    join: "بەشداریکردن",
-    map: "نەخشەی ڕاستەوخۆ",
-    fullScreen: "پڕکردنی شاشە"
-  }
-};
-
-let currentLang = 'ku'; // Default to Kurdish as requested
-function t(key) { return DICT[currentLang][key] || DICT['en'][key] || key; }
-
-// --- KURDISH QUESTION BANK PRESETS ---
-const PRESETS = {
-  city: {
-    icon: '🏙️',
-    title: { en: 'Cities of Iraq', ku: 'شارەکانی عێراق' },
-    checkpoints: [{lat: 36.19, lng: 44.00, name: 'Erbil'}, {lat: 35.55, lng: 45.43, name: 'Sulaymaniyah'}, {lat: 33.31, lng: 44.36, name: 'Baghdad'}],
-    questions: [
-      { q: "پایتەختی هەرێمی کوردستان کام شارەیە؟", opts: ["هەولێر", "سلێمانی", "دهۆک", "هەڵەبجە"], ans: 0 },
-      { q: "کام شار بە 'پایتەختی ڕۆشنبیری' ناسراوە؟", opts: ["هەولێر", "بەغدا", "سلێمانی", "کەرکوک"], ans: 2 },
-      { q: "شاری بەغدا دەکەوێتە سەر کام ڕووبار؟", opts: ["فورات", "دیجلە", "زێی گەورە", "سیروان"], ans: 1 },
-      { q: "قەڵای دێرینی هەولێر تەمەنی نزیکەی چەندە؟", opts: ["١٠٠٠ ساڵ", "٢٠٠٠ ساڵ", "٦٠٠٠ ساڵ", "٥٠٠ ساڵ"], ans: 2 },
-      { q: "کام شارە بە نەوتەکەی بەناوبانگە؟", opts: ["کەرکوک", "زاخۆ", "هەڵەبجە", "سۆران"], ans: 0 }
-    ]
-  },
-  mountain: {
-    icon: '⛰️',
-    title: { en: 'Mountains', ku: 'چیاکان' },
-    checkpoints: [{lat: 36.73, lng: 44.75, name: 'Halgurd'}, {lat: 37.00, lng: 44.00, name: 'Gara'}, {lat: 35.31, lng: 46.00, name: 'Hawraman'}],
-    questions: [
-      { q: "بەرزترین چیای عێراق کامەیە؟", opts: ["پیرەمەگرون", "هەڵگورد", "سەفین", "کۆڕەک"], ans: 1 },
-      { q: "چیای سەفین دەکەوێتە نزیک کام شارۆچکە؟", opts: ["شەقڵاوە", "ڕواندز", "ئامێدی", "کەلار"], ans: 0 },
-      { q: "بەرزی چیای هەڵگورد چەندە؟", opts: ["٣٠٠٠ مەتر", "٢٥٠٠ مەتر", "٣٦٠٧ مەتر", "٤٠٠٠ مەتر"], ans: 2 },
-      { q: "کام چیا بەفری زۆری لێ دەبارێت لە زستاندا و خەڵک بۆ خلیسکێنە دەچن؟", opts: ["کۆڕەک", "گۆیژە", "ئەزمەڕ", "هەنجیرە"], ans: 0 },
-      { q: "چیای حەسەن بەگ دەکەوێتە کوێ؟", opts: ["دەڤەری سۆران", "شارباژێڕ", "گەرمیان", "بادینان"], ans: 0 }
-    ]
-  },
-  river: {
-    icon: '🌊',
-    title: { en: 'Rivers', ku: 'ڕووبارەکان' },
-    checkpoints: [{lat: 36.85, lng: 44.40, name: 'Great Zab'}, {lat: 35.90, lng: 40.20, name: 'Euphrates'}, {lat: 31.00, lng: 47.40, name: 'Shatt al-Arab'}],
-    questions: [
-      { q: "درێژترین ڕووبار لە عێراق کامەیە؟", opts: ["دیجلە", "فورات", "زێی بچوک", "سیروان"], ans: 1 },
-      { q: "زێی گەورە دەڕژێتە ناو کام ڕووبارەوە؟", opts: ["فورات", "سیروان", "دیجلە", "خاپوور"], ans: 2 },
-      { q: "یەکگرتنی دیجلە و فورات چی پێکدەهێنێت؟", opts: ["زێی گەورە", "شەتولعەرەب", "ڕووباری کارون", "دەریاچەی دوکان"], ans: 1 },
-      { q: "کام ڕووبار بە ناو شاری زاخۆدا تێدەپەڕێت؟", opts: ["خاپوور", "زێی بچوک", "سیروان", "ئاوەسپی"], ans: 0 },
-      { q: "بەنداوەی دەربەندیخان لەسەر کام ڕووبار دروستکراوە؟", opts: ["دیجلە", "زێی بچوک", "سیروان", "فورات"], ans: 2 }
-    ]
-  },
-  space: {
-    icon: '🚀',
-    title: { en: 'Space', ku: 'بۆشایی ئاسمان' },
-    checkpoints: [{lat: 0, lng: 0, name: 'Earth'}, {lat: 10, lng: 10, name: 'Moon'}, {lat: 20, lng: 20, name: 'Mars'}],
-    questions: [
-      { q: "نزیکترین هەسارە لە خۆرەوە کامەیە؟", opts: ["زەوی", "مەریخ", "عەتارید (Mercury)", "ڤینۆس (Venus)"], ans: 2 },
-      { q: "گەورەترین هەسارەی کۆمەڵەی خۆر کامەیە؟", opts: ["موشتەری (Jupiter)", "زوحەل (Saturn)", "زەوی", "ئۆرانۆس"], ans: 0 },
-      { q: "مانگ چەند ڕۆژی پێدەچێت بۆ سوڕانەوە بەدەوری زەویدا؟", opts: ["١٠ ڕۆژ", "نزیکەی ٢٨ ڕۆژ", "٣٦٥ ڕۆژ", "١ ساڵ"], ans: 1 },
-      { q: "کام هەسارە بە 'هەسارەی سوور' ناسراوە؟", opts: ["زەوی", "مەریخ", "زوحەل", "نێپتۆن"], ans: 1 },
-      { q: "خۆر لە چی پێکهاتووە بە زۆری؟", opts: ["بەرد", "ئاو", "گازی هایدرۆجین و هێلیۆم", "ئاسن"], ans: 2 }
-    ]
-  },
-  ocean: {
-    icon: '🐋',
-    title: { en: 'Oceans', ku: 'زەریاکان' },
-    checkpoints: [{lat: 0, lng: 0, name: 'Pacific'}, {lat: 20, lng: 0, name: 'Atlantic'}, {lat: 40, lng: 0, name: 'Indian'}],
-    questions: [
-      { q: "گەورەترین زەریا لە جیهاندا کامەیە؟", opts: ["زەریای ئەتڵەسی", "زەریای هیندی", "زەریای هێمن", "زەریای بەستەڵەکی باکوور"], ans: 2 },
-      { q: "قووڵترین خاڵی زەریاکان چی پێ دەوترێت؟", opts: ["کەنداو", "ماریانا ترێنچ", "کەنار دەریا", "شەپۆل"], ans: 1 },
-      { q: "چەند لە سەدی ڕووی زەوی بە ئاو داپۆشراوە؟", opts: ["نزیکەی ٥٠٪", "نزیکەی ٧١٪", "نزیکەی ٣٠٪", "نزیکەی ٩٠٪"], ans: 1 },
-      { q: "گەورەترین ئاژەڵی ناو زەریاکان کامەیە؟", opts: ["قرش", "نەهەنگی شین", "دۆلفین", "هەشتپێ"], ans: 1 },
-      { q: "ڕێژەی خوێ لە کام دەریادا زۆرترینە؟", opts: ["دەریای ناوەڕاست", "دەریای مردوو (Dead Sea)", "دەریای سوور", "دەریای ڕەش"], ans: 1 }
-    ]
-  },
-  climate: {
-    icon: '🌤️',
-    title: { en: 'Climate', ku: 'کەش و هەوا' },
-    checkpoints: [{lat: 0, lng: 0, name: 'Desert'}, {lat: 20, lng: 0, name: 'Forest'}, {lat: 40, lng: 0, name: 'Polar'}],
-    questions: [
-      { q: "وشکترین ناوچەکانی سەر زەوی پێیان دەوترێت چی؟", opts: ["دارستان", "بیابان", "دەشتایی", "چیایی"], ans: 1 },
-      { q: "گەرمبوونی گۆی زەوی بەهۆی زۆربوونی کام گازەوەیە؟", opts: ["ئۆکسجین", "نایترۆجین", "دوانۆکسیدی کاربۆن", "هێلیۆم"], ans: 2 },
-      { q: "ئامێری پێوانەکردنی پلەی گەرمی چییە؟", opts: ["تێرمۆمەتر", "بارۆمەتر", "هایگرۆمەتر", "ئەنیمۆمەتر"], ans: 0 },
-      { q: "کەشی هەرێمی کوردستان لە هاویندا چۆنە؟", opts: ["سارد و بەفراوی", "گەرم و وشک", "مامناوەند و باراناوی", "شێدار"], ans: 1 },
-      { q: "ئەو چینەی بەرگەهەوا کە زەوی دەپارێزێت لە تیشکی سەروو وەنەوشەیی پێی دەوترێت؟", opts: ["چینی ئۆزۆن", "چینی هەورەکان", "توێکڵی زەوی", "بۆشایی"], ans: 0 }
-    ]
-  }
-};
-
-// --- GLOBAL APP STATE ---
-const state = {
-  view: 'auth', // auth, dashboard, projector, student
-  auth: {
-    loggedIn: false,
-    email: '',
-    step: 'email' // email, code
-  },
-  session: {
-    active: false,
-    code: '',
-    type: 'city',
-    questions: [],
-    currentQ: -1,
-    status: 'setup', // setup, live, slide, results
-    slideUrl: '',
-    teams: [] // {id, name, score, ans}
-  },
-  timer: { active: false, time: 0, max: 20, interval: null }
-};
-
-// Check URL params for routing
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('view') === 'projector') {
-  state.view = 'projector';
-} else if (urlParams.get('join')) {
-  state.view = 'student';
-  state.session.code = urlParams.get('join');
-}
-
-// --- CORE FUNCTIONS ---
-function render() {
-  document.dir = currentLang === 'ku' ? 'rtl' : 'ltr';
-  const root = document.getElementById('app-root');
-  
-  if (state.view === 'auth') {
-    root.innerHTML = renderAuth();
-  } else if (state.view === 'dashboard') {
-    root.innerHTML = renderDashboard();
-    if(state.session.status === 'live' || state.session.status === 'results') initMap('teacher-map');
-  } else if (state.view === 'projector') {
-    root.innerHTML = renderProjector();
-    if(state.session.status === 'live') initMap('proj-map');
-  } else if (state.view === 'student') {
-    root.innerHTML = renderStudent();
-  }
-}
-
-function setLang(lang) {
-  currentLang = lang;
-  render();
-}
-
-// --- MOCK AUTH SYSTEM (NO FIREBASE) ---
-function handleAuthEmail(e) {
-  e.preventDefault();
-  const email = document.getElementById('auth-email').value;
-  if(email.includes('@')) {
-    state.auth.email = email;
-    state.auth.step = 'code';
-    render();
-  }
-}
-
-function handleAuthCode(e) {
-  e.preventDefault();
-  // Accept any 4 digit code for simulation
-  const inputs = document.querySelectorAll('.code-inputs input');
-  let code = '';
-  inputs.forEach(i => code += i.value);
-  
-  if(code.length === 4) {
-    state.auth.loggedIn = true;
-    state.view = 'dashboard';
-    // Init default questions
-    state.session.questions = JSON.parse(JSON.stringify(PRESETS[state.session.type].questions));
-    render();
-  }
-}
-
-function renderAuth() {
-  const isEmail = state.auth.step === 'email';
-  return `
-    <div class="top-bar">
-      <div style="font-weight: bold; color: var(--primary);">${t('appName')}</div>
-      <div class="lang-switch">
-        <button class="${currentLang === 'en' ? 'active' : ''}" onclick="setLang('en')">EN</button>
-        <button class="${currentLang === 'ku' ? 'active' : ''}" onclick="setLang('ku')">کوردی</button>
-      </div>
-    </div>
-    <div class="auth-screen">
-      <div class="card auth-card">
-        <div class="auth-logo">LJ</div>
-        <h2>${t('loginTitle')}</h2>
-        <p class="auth-subtitle">${t('loginSub')}</p>
-        
-        ${isEmail ? `
-          <form onsubmit="handleAuthEmail(event)">
-            <div class="field text-start">
-              <label>${t('email')}</label>
-              <input type="email" id="auth-email" class="input" placeholder="teacher@school.edu" required>
+<div id="app" class="h-full w-full flex flex-col relative" :class="{'theme-high-contrast': a11y.highContrast, 'text-size-large': a11y.largeText, 'projector-mode': view === 'projector' && isFullscreen}" v-cloak>
+    
+    <!-- Config Error Guard (Custom Soft Alert Overlay) -->
+    <div v-if="!isConfigured" class="fixed inset-0 z-[9999] bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
+        <div class="absolute inset-0 bg-gradient-to-tr from-blue-900/30 to-purple-900/30 opacity-50 z-0"></div>
+        <div class="relative z-10 max-w-xl bg-slate-800/80 backdrop-blur-md p-10 rounded-[3rem] border-2 border-white/10 shadow-2xl">
+            <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-[5rem] mb-6 animate-pulse"></i>
+            <h1 class="text-3xl font-black mb-4">سیستەمەکە پێویستی بە بەستنەوەیە</h1>
+            <p class="text-base text-gray-300 mb-8 leading-relaxed">
+                بۆ سوودوەرگرتن لە تەواوی تواناکانی پلاتفۆرمی **گەشتی فێربوون** پێویستە کلیلەکانی Supabase بنووسرێن. لێرەدا دەتوانیت بە دۆخی تاقیکردنەوە بەردەوام بیت.
+            </p>
+            <div class="flex flex-col gap-3">
+                <button @click="bypassConfiguration" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:bg-blue-500 transition">
+                    <i class="fa-solid fa-play me-2"></i> تاقیکردنەوە بە داتای دێمۆ (Demo Mode)
+                </button>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%">${t('sendCode')}</button>
-          </form>
-        ` : `
-          <form onsubmit="handleAuthCode(event)">
-            <p style="margin-bottom: 15px; font-weight: bold;">Code sent to ${state.auth.email}</p>
-            <div class="code-inputs">
-              <input type="text" maxlength="1" onkeyup="moveFocus(this, 1)">
-              <input type="text" maxlength="1" onkeyup="moveFocus(this, 2)">
-              <input type="text" maxlength="1" onkeyup="moveFocus(this, 3)">
-              <input type="text" maxlength="1">
-            </div>
-            <button type="submit" class="btn btn-primary" style="width:100%">${t('verify')}</button>
-            <p class="text-muted" style="font-size: 12px; margin-top: 15px;">${t('mockNotice')}</p>
-          </form>
-        `}
-      </div>
+        </div>
     </div>
-  `;
-}
 
-function moveFocus(el, next) {
-  if (el.value.length === 1) {
-    el.parentElement.children[next]?.focus();
-  }
-}
-
-function renderDashboard() {
-  return `
-    <div class="top-bar">
-      <div style="font-weight: bold; font-size: 18px; display: flex; align-items: center; gap: 10px;">
-        <span style="background: var(--primary); color: white; padding: 4px 8px; border-radius: 6px;">LJ</span>
-        ${t('dashboard')}
-      </div>
-      <div class="flex items-center gap-4">
-        <button class="btn btn-outline" onclick="popProjector()">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-          ${t('popProjector')}
+    <!-- Accessibility Settings (Hidden on Projector) -->
+    <div v-if="view !== 'projector' && isConfigured" class="absolute top-4 left-4 z-[999] flex flex-col gap-2">
+        <button @click="a11y.menuOpen = !a11y.menuOpen" class="w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center focus:ring-4 focus:ring-blue-300 transition-transform hover:scale-105" aria-label="ڕێکخستنەکانی بینین">
+            <i class="fa-solid fa-universal-access text-xl"></i>
         </button>
-        <div class="lang-switch">
-          <button class="${currentLang === 'en' ? 'active' : ''}" onclick="setLang('en')">EN</button>
-          <button class="${currentLang === 'ku' ? 'active' : ''}" onclick="setLang('ku')">کوردی</button>
+        <div v-if="a11y.menuOpen" class="surface-card border-2 p-4 rounded-2xl shadow-2xl flex flex-col gap-4 w-56 animate-fade-in">
+            <h4 class="font-bold text-sm border-b pb-2 text-gray-700 dark:text-gray-200">دەستپێگەیشتن</h4>
+            <label class="flex items-center gap-3 text-sm cursor-pointer"><input type="checkbox" v-model="a11y.highContrast" class="w-5 h-5 rounded text-blue-600"> ڕەنگی تۆخ (بەرز)</label>
+            <label class="flex items-center gap-3 text-sm cursor-pointer"><input type="checkbox" v-model="a11y.largeText" class="w-5 h-5 rounded text-blue-600"> تێکستی گەورە</label>
         </div>
-      </div>
     </div>
-    
-    <div class="dashboard-layout">
-      <div class="card" style="position: sticky; top: 80px;">
-        <div class="sidebar-menu">
-          <button class="menu-item ${state.session.status === 'setup' ? 'active' : ''}" onclick="state.session.status='setup';render()">1. ${t('setup')}</button>
-          <button class="menu-item ${state.session.status !== 'setup' ? 'active' : ''}" ${!state.session.active ? 'disabled' : ''}>2. ${t('liveControl')}</button>
+
+    <!-- Global Notification System -->
+    <div v-if="notification.show" class="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] px-8 py-4 rounded-full shadow-2xl font-bold text-white transition-all duration-300 animate-fade-in flex items-center gap-3"
+         :class="{'bg-emerald-600': notification.type==='success', 'bg-red-600': notification.type==='error', 'bg-blue-600': notification.type==='info', 'bg-yellow-500 text-black': notification.type==='warning'}">
+        <i :class="notification.icon"></i> {{ notification.message }}
+    </div>
+
+    <!-- VIEW: Home -->
+    <div v-if="view === 'home' && isConfigured" class="flex-1 flex flex-col items-center justify-center p-6 space-y-12 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 relative">
+        <button @click="navigate('login', {role: 'admin'})" class="absolute top-6 right-6 text-sm text-blue-400 hover:text-blue-600 font-bold px-4 py-2 bg-white/50 rounded-full border shadow-sm backdrop-blur"><i class="fa-solid fa-shield-halved me-1"></i> بەڕێوەبەر</button>
+        
+        <div class="text-center space-y-6 animate-fade-in">
+            <div class="w-40 h-40 bg-gradient-to-tr from-blue-500 to-cyan-400 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl text-white text-[5rem] rotate-3 transform hover:scale-105 transition duration-500">🌍</div>
+            <h1 class="text-5xl font-black text-blue-900 dark:text-blue-300 tracking-tight">گەشتی فێربوون</h1>
+            <p class="text-gray-600 dark:text-gray-400 font-bold text-lg">پلاتفۆرمی پەروەردەیی گشتگیر و کارلێکەر</p>
         </div>
-      </div>
-      
-      <div>
-        ${state.session.status === 'setup' ? renderSetup() : renderLiveControl()}
-      </div>
-    </div>
-  `;
-}
 
-function setCompType(type) {
-  state.session.type = type;
-  state.session.questions = JSON.parse(JSON.stringify(PRESETS[type].questions));
-  render();
-}
-
-function processSlideUrl(url) {
-  // Convert standard share link to embed if possible
-  if (url.includes('/edit?usp=sharing')) {
-    return url.replace('/edit?usp=sharing', '/embed?start=false&loop=false&delayms=3000');
-  }
-  return url;
-}
-
-function renderSetup() {
-  const tPresets = Object.keys(PRESETS).map(k => `
-    <div class="preset-card ${state.session.type === k ? 'active' : ''}" onclick="setCompType('${k}')">
-      <div class="preset-icon">${PRESETS[k].icon}</div>
-      <div style="font-weight: bold;">${PRESETS[k].title[currentLang]}</div>
-    </div>
-  `).join('');
-
-  const qsList = state.session.questions.map((q, i) => `
-    <div class="q-item">
-      <div class="q-item-header">
-        <span style="font-weight: bold;">${i+1}. ${q.q}</span>
-      </div>
-      <div class="q-options">
-        ${q.opts.map((opt, j) => `<div class="q-opt ${j === q.ans ? 'correct' : ''}">${opt}</div>`).join('')}
-      </div>
-    </div>
-  `).join('');
-
-  return `
-    <div class="card mb-4">
-      <h3 class="mb-4">${t('compType')}</h3>
-      <div class="preset-grid">${tPresets}</div>
-    </div>
-    
-    <div class="card mb-4">
-      <h3 class="mb-4">${t('slides')}</h3>
-      <p class="text-muted mb-4" style="font-size: 14px;">${t('slidesSub')}</p>
-      <input type="url" id="slide-input" class="input" placeholder="https://docs.google.com/presentation/d/e/.../embed" value="${state.session.slideUrl}" onchange="state.session.slideUrl = processSlideUrl(this.value)">
-    </div>
-    
-    <div class="card mb-4">
-      <h3 class="mb-4">${t('questions')} (${PRESETS[state.session.type].title[currentLang]})</h3>
-      <div class="q-list">${qsList}</div>
-    </div>
-    
-    <div class="flex justify-between items-center mt-4 pt-4 border-t">
-      <p class="text-muted text-sm">Ready to invite students?</p>
-      <button class="btn btn-primary" style="font-size: 18px; padding: 12px 24px;" onclick="startGame()">
-        ${t('startSession')}
-      </button>
-    </div>
-  `;
-}
-
-function startGame() {
-  state.session.active = true;
-  state.session.status = 'live';
-  state.session.code = Math.floor(1000 + Math.random() * 9000).toString();
-  state.session.currentQ = -1;
-  state.session.teams = [
-    {id: '1', name: 'Team Alpha', score: 0, ans: null},
-    {id: '2', name: 'Team Beta', score: 0, ans: null} // Mock teams
-  ];
-  updateCrossTabs();
-  render();
-}
-
-function nextQuestion() {
-  state.session.currentQ++;
-  if(state.session.currentQ >= state.session.questions.length) {
-    state.session.status = 'results';
-  } else {
-    state.session.status = 'live';
-    state.session.teams.forEach(t => t.ans = null);
-    startTimer(20);
-    simulateAnswers();
-  }
-  updateCrossTabs();
-  render();
-}
-
-function toggleSlides() {
-  state.session.status = state.session.status === 'slide' ? 'live' : 'slide';
-  updateCrossTabs();
-  render();
-}
-
-function renderLiveControl() {
-  const isSlide = state.session.status === 'slide';
-  
-  return `
-    <div class="card mb-4" style="background: var(--primary); color: white;">
-      <div class="flex justify-between items-center">
-        <div>
-          <div style="font-size: 14px; opacity: 0.8;">${t('joinCode')}</div>
-          <div style="font-size: 32px; font-weight: bold; letter-spacing: 4px;">${state.session.code}</div>
+        <div class="w-full max-w-sm space-y-4 animate-fade-in" style="animation-delay: 0.2s">
+            <button @click="navigate('join')" class="w-full touch-btn bg-emerald-600 text-white text-xl font-black shadow-xl hover:-translate-y-1"><i class="fa-solid fa-qrcode ms-3 text-2xl"></i> قوتابی (چوونەژوورەوە)</button>
+            <button @click="navigate('login', {role: 'teacher'})" class="w-full touch-btn surface-card text-blue-600 border-2 border-blue-200 text-lg font-bold shadow-md hover:bg-blue-50"><i class="fa-solid fa-chalkboard-user ms-3"></i> ژووری مامۆستایان</button>
         </div>
-        <div style="text-align: end;">
-          <div style="font-size: 14px; opacity: 0.8;">Link</div>
-          <div style="font-weight: bold;">localhost/?join=${state.session.code}</div>
-        </div>
-      </div>
     </div>
-    
-    <div class="card mb-4">
-      <div class="flex justify-between items-center mb-4">
-        <h3>${t('liveControl')}</h3>
-        <div class="flex gap-2">
-          ${state.session.slideUrl ? `
-            <button class="btn ${isSlide ? 'btn-primary' : 'btn-outline'}" onclick="toggleSlides()">
-              ${isSlide ? t('showGame') : t('showSlides')}
+
+    <!-- VIEW: Login -->
+    <div v-if="view === 'login' && isConfigured" class="flex-1 flex flex-col justify-center p-6 max-w-md mx-auto w-full space-y-8 relative animate-fade-in">
+        <button @click="navigate('home')" class="absolute top-6 right-6 text-gray-400 hover:text-gray-600 text-3xl p-2 transition"><i class="fa-solid fa-arrow-right"></i></button>
+        <div class="text-center text-[5rem]" :class="loginRole === 'admin' ? 'text-slate-800 dark:text-white' : 'text-blue-600'">
+            <i :class="loginRole === 'admin' ? 'fa-solid fa-user-shield' : 'fa-solid fa-chalkboard-user'"></i>
+        </div>
+        <h2 class="text-3xl font-black text-center">چوونەژوورەوەی {{ loginRole === 'admin' ? 'بەڕێوەبەر' : 'مامۆستا' }}</h2>
+        <form @submit.prevent="handleAuth" class="surface-card p-8 rounded-[2rem] border shadow-lg space-y-5">
+            <div v-if="authForm.error" class="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-bold border border-red-200"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ authForm.error }}</div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 block mb-2">ئیمەیڵ</label>
+                <input v-model="authForm.email" type="email" required class="w-full p-4 border-2 rounded-2xl text-left focus:border-blue-500 outline-none transition bg-gray-50 dark:bg-slate-800" dir="ltr">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 block mb-2">وشەی نهێنی</label>
+                <input v-model="authForm.password" type="password" required class="w-full p-4 border-2 rounded-2xl text-left focus:border-blue-500 outline-none transition bg-gray-50 dark:bg-slate-800" dir="ltr">
+            </div>
+            <button type="submit" class="w-full touch-btn text-white font-black text-xl shadow-md mt-4" :class="loginRole === 'admin' ? 'bg-slate-800' : 'bg-blue-600'" :disabled="isLoading">
+                <span v-if="isLoading"><i class="fa-solid fa-spinner fa-spin"></i></span><span v-else>چوونەژوورەوە</span>
             </button>
-          ` : ''}
-        </div>
-      </div>
-      
-      ${state.session.currentQ === -1 ? `
-        <div class="text-center py-8">
-          <div style="font-size: 48px; margin-bottom: 20px;">🗺️</div>
-          <h2 class="mb-4">${t('waitingPlayers')}</h2>
-          <button class="btn btn-primary btn-lg" onclick="nextQuestion()">${t('revealQ')} 1</button>
-        </div>
-      ` : `
-        <div class="flex justify-between items-start mb-4">
-          <div>
-            <div class="text-muted text-sm uppercase tracking-wide mb-2">Question ${state.session.currentQ + 1} of ${state.session.questions.length}</div>
-            <h2 style="font-size: 20px;">${state.session.questions[state.session.currentQ].q}</h2>
-          </div>
-          ${renderTimerWidget()}
-        </div>
-        
-        <div class="map-container" id="teacher-map"></div>
-        
-        <div class="mt-4 flex justify-between items-center">
-          <div class="text-muted">${state.session.teams.filter(t=>t.ans!==null).length} / ${state.session.teams.length} answered</div>
-          <button class="btn btn-primary" onclick="nextQuestion()">${state.session.currentQ >= state.session.questions.length -1 ? t('endGame') : t('nextQ')}</button>
-        </div>
-      `}
+        </form>
     </div>
-  `;
-}
 
-// Timer Logic
-function startTimer(seconds) {
-  clearInterval(state.timer.interval);
-  state.timer.active = true;
-  state.timer.max = seconds;
-  state.timer.time = seconds;
-  
-  state.timer.interval = setInterval(() => {
-    state.timer.time--;
-    if(state.timer.time <= 0) {
-      clearInterval(state.timer.interval);
-      state.timer.active = false;
-      checkAnswers();
-    }
-    renderTimerOnly();
-    updateCrossTabs();
-  }, 1000);
-}
+    <!-- VIEW: Admin Dashboard -->
+    <div v-if="view === 'admin-dashboard' && isConfigured" class="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-900">
+        <header class="bg-slate-800 text-white p-5 shadow-lg flex justify-between items-center z-20">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-inner"><i class="fa-solid fa-shield text-xl"></i></div>
+                <div><h1 class="text-base font-black">بەڕێوەبەری گشتی</h1><span class="text-xs text-emerald-300 font-bold">پلاتفۆرمی نیشتمانی</span></div>
+            </div>
+            <button @click="logout" class="bg-red-500/20 text-red-400 px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-500/30 transition"><i class="fa-solid fa-power-off me-1"></i> دەرچوون</button>
+        </header>
 
-function renderTimerWidget() {
-  const pct = state.timer.time / state.timer.max;
-  const dash = 251.2; // 2 * pi * 40
-  const offset = dash - (pct * dash);
-  const urgent = state.timer.time <= 5;
-  
-  return `
-    <div class="timer-ring" id="live-timer">
-      <svg viewBox="0 0 100 100">
-        <circle class="timer-circle-bg" cx="50" cy="50" r="40"></circle>
-        <circle class="timer-circle ${urgent?'urgent':''}" cx="50" cy="50" r="40" stroke-dasharray="${dash}" stroke-dashoffset="${offset}"></circle>
-      </svg>
-      <div class="timer-text ${urgent?'urgent':''}">${state.timer.time}</div>
-    </div>
-  `;
-}
-
-function renderTimerOnly() {
-  const el = document.getElementById('live-timer');
-  if(el) el.outerHTML = renderTimerWidget();
-  const projEl = document.getElementById('proj-timer');
-  if(projEl) projEl.outerHTML = renderTimerWidget();
-}
-
-function simulateAnswers() {
-  // Mock remote students answering
-  setTimeout(() => {
-    if(state.timer.active) state.session.teams[0].ans = Math.floor(Math.random() * 4);
-    updateCrossTabs();
-    render();
-  }, 3000);
-  setTimeout(() => {
-    if(state.timer.active) state.session.teams[1].ans = state.session.questions[state.session.currentQ].ans; // Usually correct
-    updateCrossTabs();
-    render();
-  }, 5000);
-}
-
-function checkAnswers() {
-  const q = state.session.questions[state.session.currentQ];
-  state.session.teams.forEach(t => {
-    if(t.ans === q.ans) t.score++;
-  });
-  updateCrossTabs();
-  render();
-}
-
-function popProjector() {
-  window.open(window.location.href + '?view=projector', '_blank', 'width=1024,height=768');
-}
-
-function toggleFullScreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(err => {
-      console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-    });
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    }
-  }
-}
-
-function renderProjector() {
-  // Sync state from localStorage for pop-out
-  syncStateFromStorage();
-  
-  if (!state.session.active) {
-    return `
-      <div class="projector-view" style="background: var(--text-main);">
-        <div class="proj-content">
-          <div>
-            <h1 style="font-size: 5vw; color: white; margin-bottom: 20px;">${t('appName')}</h1>
-            <p style="color: var(--text-muted); font-size: 2vw;">${t('waitingPlayers')}</p>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  if (state.session.status === 'slide' && state.session.slideUrl) {
-    return `
-      <div class="projector-view">
-        <div class="slide-iframe-container">
-          <iframe src="${state.session.slideUrl}" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
-        </div>
-        <button class="btn btn-outline" style="position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none;" onclick="toggleFullScreen()">${t('fullScreen')}</button>
-      </div>
-    `;
-  }
-
-  if (state.session.currentQ === -1) {
-     return `
-      <div class="projector-view" style="background: var(--text-main);">
-        <div class="proj-content">
-          <div>
-             <div style="font-size: 2vw; color: var(--accent); margin-bottom: 10px; font-family: monospace;">${t('joinCode')}</div>
-             <div style="font-size: 8vw; color: white; font-weight: bold; letter-spacing: 10px; margin-bottom: 40px;">${state.session.code}</div>
-             <div style="font-size: 2vw; color: var(--text-muted);">${t('scanToJoin')}</div>
-          </div>
-        </div>
-        <button class="btn btn-outline" style="position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none;" onclick="toggleFullScreen()">${t('fullScreen')}</button>
-      </div>
-    `;
-  }
-
-  const q = state.session.questions[state.session.currentQ];
-  const showAnswer = !state.timer.active;
-  
-  return `
-    <div class="projector-view" style="background: var(--text-main);">
-      <div class="proj-header">
-         <div style="font-size: 1.5vw; color: var(--text-muted);">${PRESETS[state.session.type].title[currentLang]}</div>
-         <div style="display: flex; align-items: center; gap: 20px;">
-            <div style="font-size: 1.5vw;">Join: <strong>${state.session.code}</strong></div>
-            <button class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: white; border: none;" onclick="toggleFullScreen()">⛶</button>
-         </div>
-      </div>
-      <div class="proj-content" style="flex-direction: column;">
-        <div class="proj-q-text">${q.q}</div>
-        
-        <div style="display: flex; gap: 40px; align-items: center; width: 100%; max-width: 1200px;">
-          <div style="flex: 1;">
-            <div class="proj-options">
-              ${q.opts.map((opt, i) => `
-                <div class="proj-opt ${showAnswer && i === q.ans ? 'reveal-correct' : ''}">
-                  <span style="opacity: 0.5; margin-inline-end: 15px;">${['A','B','C','D'][i]}</span> ${opt}
+        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="surface-card p-4 rounded-2xl border shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-school"></i></div>
+                    <div><div class="text-2xl font-black">{{ adminData.schools.length || 0 }}</div><div class="text-xs text-gray-500 font-bold">قوتابخانە</div></div>
                 </div>
-              `).join('')}
+                <div class="surface-card p-4 rounded-2xl border shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xl"><i class="fa-solid fa-chalkboard-user"></i></div>
+                    <div><div class="text-2xl font-black">{{ adminData.teachers.length || 0 }}</div><div class="text-xs text-gray-500 font-bold">مامۆستا</div></div>
+                </div>
             </div>
-          </div>
-          <div style="width: 120px;">
-            ${renderTimerWidget().replace('id="live-timer"', 'id="proj-timer"')}
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
 
-function joinStudent(e) {
-  e.preventDefault();
-  const name = document.getElementById('student-name').value;
-  if(name) {
-    state.session.myTeam = {id: 'me', name: name, score: 0, ans: null};
-    state.session.active = true; // Mock joined
-    render();
-  }
-}
-
-function selectAnswer(idx) {
-  if(!state.timer.active || state.session.myTeam.ans !== null) return;
-  state.session.myTeam.ans = idx;
-  render();
-}
-
-function renderStudent() {
-  if (!state.session.myTeam) {
-    return `
-      <div class="student-view" style="justify-content: center;">
-        <div class="card text-center" style="padding: 40px 20px;">
-          <h2 class="mb-4">${t('join')}</h2>
-          <form onsubmit="joinStudent(event)">
-            <div class="field text-start">
-              <label>${t('teamName')}</label>
-              <input type="text" id="student-name" class="input" required>
+            <div class="surface-card p-6 rounded-3xl border shadow-sm">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-black text-xl text-slate-800 dark:text-white"><i class="fa-solid fa-users-gear text-blue-500 me-2"></i> بەڕێوەبردنی ڕۆڵ و مۆڵەتەکانی Co-Pilot</h3>
+                    <button @click="showNotify('ڕێکخستنی ڕۆڵەکان نوێکرایەوە', 'success')" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:-translate-y-0.5 transition"><i class="fa-solid fa-save me-1"></i> پاشەکەوتکردن</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-4 bg-blue-50/50 dark:bg-slate-800 rounded-2xl border">
+                        <span class="font-black text-base text-blue-600 block mb-2">یاریدەدەری یەکەم (Assistant)</span>
+                        <div class="space-y-2 text-sm">
+                            <label class="flex items-center gap-2"><input type="checkbox" checked class="rounded"> توانای دەستپێکردن/ڕاگرتن</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" checked class="rounded"> بینینی ئامارەکانی ڕاستەوخۆ</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" class="rounded"> گۆڕینی وێستگەکان</label>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-purple-50/50 dark:bg-slate-800 rounded-2xl border">
+                        <span class="font-black text-base text-purple-600 block mb-2">چاودێر (Observer)</span>
+                        <div class="space-y-2 text-sm">
+                            <label class="flex items-center gap-2"><input type="checkbox" class="rounded" disabled> توانای دەستپێکردن/ڕاگرتن</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" checked class="rounded" disabled> بینینی ئامارەکانی ڕاستەوخۆ</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" class="rounded" disabled> وەڵامدانەوەی پرسیارەکان</label>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <button class="btn btn-primary" style="width:100%; font-size: 18px; padding: 15px;">Go</button>
-          </form>
         </div>
-      </div>
-    `;
-  }
-  
-  // Sync state
-  syncStateFromStorage();
-
-  if (state.session.status === 'slide') {
-    return `<div class="student-view"><div class="card text-center" style="margin: auto;"><h3>${t('studentWait')}</h3></div></div>`;
-  }
-
-  if (state.session.currentQ === -1) {
-    return `
-      <div class="student-view">
-        <div class="student-header">
-           <div style="font-weight: bold;">${state.session.myTeam.name}</div>
-           <div class="text-muted">Score: ${state.session.myTeam.score}</div>
-        </div>
-        <div class="card text-center" style="margin: auto;">
-          <h3 class="text-muted">${t('waitingPlayers')}</h3>
-        </div>
-      </div>
-    `;
-  }
-
-  const q = state.session.questions[state.session.currentQ];
-  const myAns = state.session.myTeam.ans;
-  const isLocked = myAns !== null;
-  const timeUp = !state.timer.active;
-  
-  let feedback = '';
-  if (timeUp && isLocked) {
-    feedback = myAns === q.ans ? `<div style="color: var(--success); font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;">${t('correct')}</div>` 
-                               : `<div style="color: var(--danger); font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;">${t('incorrect')}</div>`;
-  }
-
-  return `
-    <div class="student-view">
-      <div class="student-header">
-         <div style="font-weight: bold;">${state.session.myTeam.name}</div>
-         <div class="text-muted">Score: ${state.session.myTeam.score}</div>
-      </div>
-      
-      ${feedback}
-      
-      ${(!timeUp && isLocked) ? `
-        <div class="card text-center" style="margin: auto;">
-          <h3 style="color: var(--primary);">${t('studentLocked')}</h3>
-          <p class="text-muted mt-4">${t('studentWait')}</p>
-        </div>
-      ` : `
-        <div style="margin-bottom: 20px;">
-           <h3 style="font-size: 22px; line-height: 1.4;">${q.q}</h3>
-        </div>
-        <div>
-          ${q.opts.map((opt, i) => `
-            <button class="student-btn ${myAns === i ? 'selected' : ''}" onclick="selectAnswer(${i})" ${timeUp || isLocked ? 'disabled' : ''}>
-              <div class="student-btn-letter">${['A','B','C','D'][i]}</div>
-              <span>${opt}</span>
-            </button>
-          `).join('')}
-        </div>
-      `}
     </div>
-  `;
-}
 
-// --- Map Initialization (Leaflet) ---
-let mapInstance = null;
-function initMap(containerId) {
-  setTimeout(() => {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    
-    if (mapInstance) { mapInstance.remove(); }
-    
-    mapInstance = L.map(el, { zoomControl: false, attributionControl: false }).setView([35.0, 44.0], 6); // Centered on Iraq/Kurdistan
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mapInstance);
-    
-    const cps = PRESETS[state.session.type].checkpoints;
-    const latlngs = cps.map(c => [c.lat, c.lng]);
-    
-    L.polyline(latlngs, { color: 'var(--primary)', weight: 3, dashArray: '5, 10' }).addTo(mapInstance);
-    
-    cps.forEach((cp, i) => {
-      L.circleMarker([cp.lat, cp.lng], { radius: 8, color: 'white', weight: 2, fillColor: 'var(--primary)', fillOpacity: 1 })
-       .addTo(mapInstance).bindTooltip(cp.name, {permanent: true, direction: 'top', className: 'map-label'});
-    });
-    
-    mapInstance.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50] });
-  }, 100);
-}
+    <!-- VIEW: Teacher Views -->
+    <div v-if="view.startsWith('teacher-') && isConfigured" class="flex flex-col h-full bg-slate-50 dark:bg-slate-900 pb-safe relative">
+        <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white p-4 shadow-lg flex justify-between items-center z-20">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center font-black text-xl border-2 border-white/40 shadow-inner">{{ (userProfile?.full_name || 'م').charAt(0) }}</div>
+                <div>
+                    <h1 class="text-base font-black leading-tight">{{ userProfile?.full_name }}</h1>
+                    <span class="text-xs text-blue-200 font-bold"><i class="fa-solid fa-chalkboard-user me-1"></i> ژووری مامۆستایان</span>
+                </div>
+            </div>
+            <button @click="logout" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-500 transition"><i class="fa-solid fa-power-off"></i></button>
+        </header>
 
-// --- Cross-Tab Sync Simulation ---
-// Using localStorage events to sync state between Teacher Dashboard and Pop-out Projector
-function updateCrossTabs() {
-  localStorage.setItem('lj_state_sync', JSON.stringify({
-    session: state.session,
-    timer: state.timer
-  }));
-}
+        <div class="flex-1 overflow-y-auto pb-24 p-4 lg:p-8 space-y-8">
+            
+            <!-- Teacher Home Tab -->
+            <div v-if="view === 'teacher-home'" class="space-y-6 animate-fade-in">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-black text-slate-800 dark:text-white"><i class="fa-solid fa-plane-departure text-blue-500 me-2"></i> گەشتەکان و پێشکەشکردنەکانم</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div v-for="j in teacherData.journeys" :key="j.id" class="surface-card p-5 rounded-[2rem] border-2 shadow-sm hover:shadow-xl hover:border-blue-400 transition-all group flex flex-col justify-between h-56 relative overflow-hidden">
+                        <div class="absolute -left-6 -bottom-6 text-8xl opacity-5"><i class="fa-solid fa-earth-americas"></i></div>
+                        <div>
+                            <div class="font-black text-xl text-slate-800 dark:text-white mb-1 truncate">{{ j.title }}</div>
+                            <div class="text-xs font-bold text-gray-500 line-clamp-2 mb-2">{{ j.description || 'بێ وەسف' }}</div>
+                            <!-- Journey Style visual badge -->
+                            <span class="inline-flex items-center gap-1 bg-amber-50 dark:bg-slate-800 border text-amber-700 dark:text-amber-300 text-xs px-2.5 py-1 rounded-full font-black">
+                                <i class="fa-solid fa-route"></i> ستایل: {{ getJourneyStyleName(j.journey_style) }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="bg-indigo-50 dark:bg-slate-800 px-3 py-1 text-xs font-bold text-indigo-600 dark:text-indigo-300 rounded-lg"><i class="fa-solid fa-sliders me-1"></i> {{ j.timeline?.length || 0 }} وانە کارلێکەر</span>
+                            <button @click="startCompetition(j)" class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-2.5 rounded-xl font-black shadow-lg transform group-hover:scale-105 transition"><i class="fa-solid fa-play me-1"></i> وانەی نوێ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-function syncStateFromStorage() {
-  try {
-    const synced = JSON.parse(localStorage.getItem('lj_state_sync'));
-    if(synced) {
-      state.session = synced.session;
-      state.timer = synced.timer;
+            <!-- Teacher Studio / Multimedia / Timeline Hub -->
+            <div v-if="view === 'teacher-studio'" class="space-y-6 animate-fade-in">
+                <div class="flex gap-2 p-1 bg-gray-200 dark:bg-slate-800 rounded-2xl w-max mx-auto mb-6">
+                    <button @click="studioTab = 'timeline'" class="px-6 py-2 rounded-xl text-sm font-bold transition" :class="studioTab==='timeline' ? 'bg-white shadow text-blue-600' : 'text-gray-500'">دارێژەری هێڵی کاتی</button>
+                    <button @click="studioTab = 'styles'" class="px-6 py-2 rounded-xl text-sm font-bold transition" :class="studioTab==='styles' ? 'bg-white shadow text-amber-600' : 'text-gray-500'"><i class="fa-solid fa-compass me-1"></i> ستایلی گەشتەکان</button>
+                    <button @click="studioTab = 'ai-assistant'" class="px-6 py-2 rounded-xl text-sm font-bold transition" :class="studioTab==='ai-assistant' ? 'bg-white shadow text-amber-600' : 'text-gray-500'"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> یاریدەدەری زیرەک</button>
+                </div>
+
+                <!-- SUB-TAB: Journey Style Selector Panel -->
+                <div v-if="studioTab === 'styles'" class="surface-card p-6 rounded-[2rem] border shadow-xl space-y-6">
+                    <div class="text-right">
+                        <h3 class="font-black text-xl text-amber-600">هەڵبژاردنی شێوازی گەشتەکان</h3>
+                        <p class="text-xs text-gray-400 mt-1">شێوازی ئەنیمەیشن، ئایکۆن، پاشبنەما و دەنگی گەشتەکە لێرە بگۆڕە بۆ وانەکەت</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div v-for="style in journeyStyles" :key="style.id" @click="activeJourneyStyle = style.id" :class="{'border-amber-500 bg-amber-500/10 scale-105 shadow-md': activeJourneyStyle === style.id, 'border-slate-200': activeJourneyStyle !== style.id}" class="p-4 border-2 rounded-2xl text-center cursor-pointer transition hover:scale-102">
+                            <span class="text-4xl block mb-2">{{ style.icon }}</span>
+                            <h4 class="font-black text-sm text-slate-800 dark:text-white">{{ style.name }}</h4>
+                            <p class="text-[10px] text-gray-400 mt-1">{{ style.desc }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-TAB: Lesson Timeline Builder -->
+                <div v-if="studioTab === 'timeline'" class="surface-card p-6 rounded-[2rem] border shadow-xl space-y-6">
+                    <div class="flex justify-between items-center border-b pb-4">
+                        <div>
+                            <h3 class="font-black text-xl text-blue-600">هێڵی کاتیی وانە کارلێکەرەکان</h3>
+                            <p class="text-xs text-gray-400 mt-1 font-bold">ڕیزبەندی وانەوتنەوە و پێشبڕکێکەت بە ئارەزووی خۆت دەستکاری بکە</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div v-for="(item, idx) in customTimeline" :key="item.id" class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl transition hover:border-blue-400">
+                            <div class="flex items-center gap-4">
+                                <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-sm">{{ idx + 1 }}</span>
+                                <div>
+                                    <h4 class="font-black text-base text-slate-800 dark:text-slate-100">{{ item.title }}</h4>
+                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-tags me-1"></i> {{ item.type }}</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="moveTimelineItem(idx, -1)" :disabled="idx === 0" class="w-10 h-10 bg-white dark:bg-slate-700 border rounded-xl flex items-center justify-center text-gray-500 disabled:opacity-30"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button @click="moveTimelineItem(idx, 1)" :disabled="idx === customTimeline.length - 1" class="w-10 h-10 bg-white dark:bg-slate-700 border rounded-xl flex items-center justify-center text-gray-500 disabled:opacity-30"><i class="fa-solid fa-arrow-down"></i></button>
+                                <button @click="removeTimelineItem(idx)" class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-6">
+                        <h4 class="font-black text-sm text-gray-600 dark:text-gray-300 mb-4">زیادکردنی سەرچاوەی نوێ بۆ وانە</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <button @click="addTimelineItem('PowerPoint', 'ناساندنی کۆسمۆس (پاوەرپۆینت)', {slidesCount: 8})" class="p-4 bg-orange-50 border-2 border-orange-100 text-orange-700 rounded-2xl text-center hover:scale-105 transition font-bold text-sm"><i class="fa-solid fa-file-powerpoint text-2xl mb-2 block"></i> پاوەرپۆینت</button>
+                            <button @click="addTimelineItem('Virtual Trip', 'گەشتی مەجازی: دۆڵی هاوار', {location: 'Hawar Valley', coords: '35.12, 46.11'})" class="p-4 bg-purple-50 border-2 border-purple-100 text-purple-700 rounded-2xl text-center hover:scale-105 transition font-bold text-sm"><i class="fa-solid fa-map-location-dot text-2xl mb-2 block"></i> گەشتی مەجازی</button>
+                            <button @click="addTimelineItem('PDF', 'پەڕتووکی زانست - بەشی فیزیا', {pagesCount: 12})" class="p-4 bg-red-50 border-2 border-red-100 text-red-700 rounded-2xl text-center hover:scale-105 transition font-bold text-sm"><i class="fa-solid fa-file-pdf text-2xl mb-2 block"></i> پەڕگەی PDF</button>
+                            <button @click="addTimelineItem('Quiz', 'پرسیار: خێرایی تیشک چەندە؟', {questionId: 101})" class="p-4 bg-emerald-50 border-2 border-emerald-100 text-emerald-700 rounded-2xl text-center hover:scale-105 transition font-bold text-sm"><i class="fa-solid fa-circle-question text-2xl mb-2 block"></i> تاقیکردنەوەی خێرا</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-TAB: AI Presentation Assistant -->
+                <div v-if="studioTab === 'ai-assistant'" class="surface-card p-6 rounded-[2rem] border shadow-xl space-y-6">
+                    <div class="bg-gradient-to-tr from-amber-500 to-orange-500 p-6 rounded-3xl text-white relative overflow-hidden">
+                        <div class="absolute -left-6 -top-6 text-[8rem] opacity-10"><i class="fa-solid fa-robot"></i></div>
+                        <h3 class="font-black text-2xl flex items-center gap-3 relative z-10"><i class="fa-solid fa-wand-magic-sparkles"></i> بەرهەمهێنانی زیرەکانەی پرسیار بە AI</h3>
+                        <p class="text-sm opacity-90 mt-2 max-w-xl leading-relaxed relative z-10">ژیری دەستکردی نیشتمانی لە توانایدایە ناوەڕۆکی فایلی پاوەرپۆینت و پەرتووکەکانت بخوێنێتەوە و ڕاستەوخۆ پرسیاری کارلێکەرت بۆ دروست بکات.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-2 block">سەرچاوەی بابەت هەڵبژێرە</label>
+                            <select v-model="aiSelectedSource" class="w-full p-4 border-2 rounded-xl bg-slate-50 outline-none">
+                                <option value="pptx">کۆمەڵەی خۆر.pptx (پاوەرپۆینتی بارکراو)</option>
+                                <option value="pdf">زانستی پۆلی هەشتەم.pdf (مەلەزەمەی زانست)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-2 block">ژمارەی پرسیارەکان</label>
+                            <div class="flex gap-2">
+                                <button v-for="n in [3, 5, 10]" :key="n" @click="aiNumQuestions = n" class="flex-1 p-3 border-2 rounded-xl font-bold" :class="aiNumQuestions === n ? 'border-amber-500 bg-amber-50 text-amber-700' : ''">{{ n }} پرسیار</button>
+                            </div>
+                        </div>
+
+                        <button @click="generateQuestionsWithAI" class="w-full touch-btn bg-amber-600 text-white font-black text-lg shadow-lg hover:bg-amber-500" :disabled="isLoading">
+                            <span v-if="isLoading"><i class="fa-solid fa-spinner fa-spin me-2"></i> لە کاتی خوێندنەوەی بەڵگەنامەدایە...</span>
+                            <span v-else><i class="fa-solid fa-robot me-2"></i> بەرهەمهێنانی پرسیارەکان</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Reports & Bloom Analytics -->
+            <div v-if="view === 'teacher-reports'" class="space-y-6 animate-fade-in">
+                <h2 class="text-2xl font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-pie text-emerald-500 me-2"></i> شیکاری و ڕاپۆرت</h2>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="surface-card p-5 rounded-[2rem] border text-center shadow-sm">
+                        <div class="text-4xl font-black text-blue-600 mb-2 drop-shadow-sm">٨٥٪</div><div class="text-xs font-bold text-gray-500 uppercase">تێکڕای ڕاستی پێشوو</div>
+                    </div>
+                    <div class="surface-card p-5 rounded-[2rem] border text-center shadow-sm">
+                        <div class="text-4xl font-black text-purple-600 mb-2 drop-shadow-sm">{{ teacherData.journeys.length }}</div><div class="text-xs font-bold text-gray-500 uppercase">کۆی گەشتەکانت</div>
+                    </div>
+                </div>
+
+                <div class="surface-card border rounded-[2rem] p-6 shadow-sm">
+                    <h3 class="font-black text-slate-700 dark:text-slate-200 mb-4 text-center text-sm uppercase tracking-wider">ئاستی تێگەیشتن (Bloom's Taxonomy) - نموونە</h3>
+                    <div class="h-56 w-full"><canvas id="bloomChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teacher Bottom Nav -->
+        <nav class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-t flex justify-around p-2 fixed bottom-0 w-full z-30 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+            <button @click="navigate('teacher-home')" class="flex flex-col items-center p-3 w-20 rounded-2xl transition-all duration-300" :class="view==='teacher-home' ? 'bg-blue-50 text-blue-600 scale-110' : 'text-gray-400 hover:text-gray-600'"><i class="fa-solid fa-house text-2xl mb-1"></i><span class="text-[10px] font-black">سەرەتا</span></button>
+            <button @click="navigate('teacher-studio')" class="flex flex-col items-center p-3 w-20 rounded-2xl transition-all duration-300" :class="view==='teacher-studio' ? 'bg-purple-50 text-purple-600 scale-110' : 'text-gray-400 hover:text-gray-600'"><i class="fa-solid fa-wand-magic-sparkles text-2xl mb-1"></i><span class="text-[10px] font-black">ستۆدیۆ</span></button>
+            <button @click="navigate('teacher-reports')" class="flex flex-col items-center p-3 w-20 rounded-2xl transition-all duration-300" :class="view==='teacher-reports' ? 'bg-emerald-50 text-emerald-600 scale-110' : 'text-gray-400 hover:text-gray-600'"><i class="fa-solid fa-chart-pie text-2xl mb-1"></i><span class="text-[10px] font-black">شیکاری</span></button>
+        </nav>
+    </div>
+
+    <!-- VIEW: Teacher Controller (Presentation + Journey Sync) -->
+    <div v-if="view === 'control' && isConfigured" class="flex flex-col h-full bg-slate-900 text-white relative">
+        <header class="bg-slate-800 p-4 shadow-xl flex justify-between items-center border-b border-slate-700 z-20">
+            <div>
+                <span class="text-[10px] text-slate-400 block mb-1 uppercase tracking-widest font-bold">کۆدی دانیشتن</span>
+                <span class="text-3xl font-black tracking-widest text-emerald-400 drop-shadow-md" dir="ltr">{{ activeSessionCode }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-black bg-blue-600 px-2.5 py-1 rounded-lg">ڕۆڵ: {{ coPilotRoleName }}</span>
+                <button @click="endSession" class="bg-red-500/20 text-red-400 border-2 border-red-500/50 px-5 py-2.5 rounded-xl text-sm font-black hover:bg-red-500 hover:text-white transition"><i class="fa-solid fa-flag-checkered me-2"></i> کۆتایی</button>
+            </div>
+        </header>
+
+        <!-- Remote Sub-Navigation Mode Controller -->
+        <div class="flex bg-slate-800 border-b border-slate-700">
+            <button @click="controllerTab = 'remote'" class="flex-1 py-4 text-center font-black text-sm tracking-wide border-b-2 transition" :class="controllerTab==='remote' ? 'border-blue-500 text-blue-400 bg-slate-800/50' : 'border-transparent text-gray-400'"><i class="fa-solid fa-circle-play me-2"></i> کۆنترۆڵەری وانە</button>
+            <button @click="controllerTab = 'audio'" class="flex-1 py-4 text-center font-black text-sm tracking-wide border-b-2 transition" :class="controllerTab==='audio' ? 'border-indigo-500 text-indigo-400 bg-slate-800/50' : 'border-transparent text-gray-400'"><i class="fa-solid fa-volume-high me-2"></i> دەنگ و خوێندنەوە</button>
+            <button @click="controllerTab = 'copilot'" class="flex-1 py-4 text-center font-black text-sm tracking-wide border-b-2 transition" :class="controllerTab==='copilot' ? 'border-emerald-500 text-emerald-400 bg-slate-800/50' : 'border-transparent text-gray-400'"><i class="fa-solid fa-user-group me-2"></i> Co-Pilot (هاوکار)</button>
+        </div>
+
+        <!-- MAIN TAB: Remote Slide Navigation Remote -->
+        <div v-if="controllerTab === 'remote'" class="flex-1 overflow-y-auto p-4 space-y-6">
+            
+            <!-- Quick View Switcher (Presentation -> Journey Toggle) -->
+            <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-3xl flex justify-between items-center shadow-lg">
+                <div>
+                    <h4 class="font-black text-sm text-gray-300">ڕێکخستنی شاشەی فێرکردن</h4>
+                    <span class="text-xs text-blue-400 mt-1 font-bold block">{{ getProjectorStateName() }}</span>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="updateProjectorMode('welcome')" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black">بەخێرهاتن</button>
+                    <button @click="updateProjectorMode('presentation')" class="bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-black">سلایدەکان</button>
+                    <button @click="updateProjectorMode('destination')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black">گەشتی مەجازی</button>
+                    <button @click="updateProjectorMode('question')" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black">کویز</button>
+                </div>
+            </div>
+
+            <!-- Virtual Field Trips Controller Panning trackpad -->
+            <div v-if="projectorState.current_view === 'destination'" class="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 space-y-4">
+                <span class="text-sm font-black text-purple-400 block"><i class="fa-solid fa-street-view"></i> کۆنترۆڵەری پانۆرامای ٣٦٠ پلە</span>
+                <p class="text-xs text-gray-400">لێرە ڕووبەرەکە بخشێنە تاوەکو پانۆرامای وێستگەکە لەسەر شاشەی پڕۆژێکتۆر پۆل بخولێتەوە</p>
+                <div class="w-full h-32 bg-slate-950 border border-slate-700 rounded-2xl flex items-center justify-center cursor-ew-resize select-none" @mousemove="trackFieldTripPan" @touchmove="trackFieldTripPan">
+                    <span class="text-xs text-gray-500 font-bold"><i class="fa-solid fa-arrows-left-right"></i> پەنجە بخشێنە بۆ پێچاندنەوە</span>
+                </div>
+            </div>
+
+            <!-- Master Slide Control Remote Deck -->
+            <div class="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 shadow-xl space-y-6">
+                <div class="text-center">
+                    <span class="text-xs text-gray-400 font-bold uppercase tracking-widest block mb-2">سلایدی چالاک</span>
+                    <h3 class="text-5xl font-black text-indigo-400 font-mono">{{ projectorState.current_slide + 1 }} <span class="text-xl text-gray-500 font-normal">/ {{ projectorState.total_slides }}</span></h3>
+                    <p class="text-sm text-gray-300 mt-3 font-bold truncate">گەشتی فێربوون: بەشی چوارەم</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <button @click="navigateSlide(-1)" class="touch-btn bg-slate-700 hover:bg-slate-600 text-white font-black text-lg shadow-md"><i class="fa-solid fa-chevron-right me-2"></i> سلایدی پێشوو</button>
+                    <button @click="navigateSlide(1)" class="touch-btn bg-blue-600 hover:bg-blue-500 text-white font-black text-lg shadow-md">سلایدی داهاتوو <i class="fa-solid fa-chevron-left ms-2"></i></button>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <button @click="toggleBlankScreen" class="py-3 px-2 bg-slate-700 rounded-xl text-xs font-black" :class="projectorState.blank_screen ? 'bg-red-600 text-white' : ''"><i class="fa-solid fa-eye-slash block text-lg mb-1"></i> ڕەشکردنی شاشە</button>
+                    <button @click="resetPresentation" class="py-3 px-2 bg-slate-700 rounded-xl text-xs font-black"><i class="fa-solid fa-rotate block text-lg mb-1"></i> سفرکردنەوە</button>
+                    <button @click="updateProjectorMode('leaderboard')" class="py-3 px-2 bg-slate-700 rounded-xl text-xs font-black"><i class="fa-solid fa-trophy block text-lg mb-1"></i> ڕیزبەندی</button>
+                </div>
+            </div>
+
+            <!-- Visual Lesson Timeline (Dynamic Ordering) -->
+            <div class="bg-slate-800/40 border border-slate-700 p-6 rounded-[2rem] space-y-4">
+                <h4 class="font-black text-sm text-gray-400"><i class="fa-solid fa-route me-2"></i> هێڵی کاتیی ڕەوتی وانە</h4>
+                <div class="relative pl-6 border-l border-slate-700 space-y-4">
+                    <div v-for="(item, idx) in customTimeline" :key="item.id" class="relative pl-6 flex items-center justify-between cursor-pointer" @click="jumpToTimelineItem(idx)">
+                        <div class="absolute -left-[31px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4" :class="idx === activeTimelineStepIndex ? 'bg-blue-500 border-white scale-125' : 'bg-slate-700 border-slate-800'"></div>
+                        <div>
+                            <span class="text-xs font-bold" :class="idx === activeTimelineStepIndex ? 'text-blue-400' : 'text-gray-500'">وانەی {{ idx + 1 }}</span>
+                            <h5 class="font-black text-sm" :class="idx === activeTimelineStepIndex ? 'text-white' : 'text-gray-300'">{{ item.title }}</h5>
+                        </div>
+                        <span class="text-xs bg-slate-800 px-2 py-1 rounded text-gray-400 font-bold uppercase">{{ item.type }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN TAB: Voice Narration and Recording Suite -->
+        <div v-if="controllerTab === 'audio'" class="flex-1 overflow-y-auto p-4 space-y-6">
+            <div class="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 space-y-6">
+                <h3 class="font-black text-lg text-indigo-400 border-b border-slate-700 pb-3"><i class="fa-solid fa-volume-high me-2"></i> بەرهەمهێنەر و خوێنەری دەنگی</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-2 font-bold">زمانەکە دیاری بکە</label>
+                        <div class="flex gap-2">
+                            <button @click="narrationLang = 'ku'" :class="{'bg-indigo-600 border-white': narrationLang === 'ku'}" class="flex-1 py-3 border-2 border-slate-700 rounded-xl font-black">کوردی (سۆرانی)</button>
+                            <button @click="narrationLang = 'en'" :class="{'bg-indigo-600 border-white': narrationLang === 'en'}" class="flex-1 py-3 border-2 border-slate-700 rounded-xl font-black">ئینگلیزی (English)</button>
+                        </div>
+                    </div>
+
+                    <!-- Gemini TTS or Fallback Narration trigger -->
+                    <button @click="triggerVoiceNarration" class="w-full touch-btn bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg shadow-lg">
+                        <i class="fa-solid fa-bullhorn me-2"></i> خوێندنەوەی بەرز بە دەنگی زیرەک (TTS)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Teacher direct mic recording component -->
+            <div class="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 space-y-4">
+                <h3 class="font-black text-base text-gray-200">تۆمارکەری ڕاستەوخۆی مامۆستا</h3>
+                <p class="text-xs text-gray-400">دەتوانیت ڕوونکردنەوەی فێرکاری بە دەنگی خۆت تۆمار بکەیت و پاشکەش بە قوتابیان بکەیت</p>
+                
+                <div class="flex items-center justify-between bg-slate-900 p-4 rounded-xl">
+                    <button @click="toggleRecording" :class="{'bg-red-600 text-white': isRecording, 'bg-slate-700': !isRecording}" class="px-6 py-3 rounded-xl font-black text-sm flex items-center gap-2">
+                        <i class="fa-solid" :class="isRecording ? 'fa-square' : 'fa-microphone'"></i>
+                        {{ isRecording ? 'ڕاگرتن' : 'تۆمارکردن' }}
+                    </button>
+                    <span v-if="recordedAudioUrl" class="text-xs text-emerald-400 font-bold"><i class="fa-solid fa-circle-check"></i> تۆمار کرا!</span>
+                    <button v-if="recordedAudioUrl" @click="playRecordedAudio" class="bg-slate-700 p-3 rounded-xl"><i class="fa-solid fa-play"></i> لێدانەوە</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN TAB: Co-Pilot collaboration console -->
+        <div v-if="controllerTab === 'copilot'" class="flex-1 overflow-y-auto p-4 space-y-6">
+            <div class="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 space-y-6">
+                <h3 class="font-black text-lg text-emerald-400 border-b border-slate-700 pb-3"><i class="fa-solid fa-user-group me-2"></i> پانێڵی مامۆستای هاوکار (Co-Pilot)</h3>
+                <p class="text-xs text-gray-400">کۆدی خوارەوە بنێرە بۆ مامۆستای هاوکار بۆ ئەوەی ڕاستەوخۆ دەسەڵاتی کۆنترۆڵکردن یان چاودێری وانەکەت پێ ببەخشیت</p>
+
+                <div class="p-4 bg-slate-900 rounded-xl text-center">
+                    <span class="text-xs text-gray-500 block mb-1">کۆدی چوونەژوورەوەی Co-Pilot</span>
+                    <span class="text-3xl font-mono text-emerald-400 font-black tracking-widest">{{ activeSessionCode }}CP</span>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="font-black text-sm text-gray-300">هاوکارە چالاکەکان</h4>
+                    <div class="p-3 bg-slate-900/50 rounded-xl flex items-center justify-between border" v-for="cp in activeCoPilots" :key="cp.id">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            <span class="font-bold text-sm">{{ cp.name }}</span>
+                        </div>
+                        <span class="text-xs bg-slate-800 px-2 py-1 rounded text-gray-400 font-black">{{ cp.role }}</span>
+                    </div>
+                    <div v-if="activeCoPilots.length === 0" class="text-center text-xs text-gray-500 py-4">هیچ هاوکارێک هێشتا بەشدار نەبووە</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: Student Join -->
+    <div v-if="view === 'join' && isConfigured" class="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-900 relative">
+        <div class="p-6 flex flex-col h-full justify-center space-y-8 max-w-md mx-auto w-full animate-fade-in">
+            <div class="text-center">
+                <div class="text-6xl mb-4 animate-bounce">🚀</div>
+                <h2 class="text-3xl font-black mb-2 text-slate-800 dark:text-white">ئامادەی بۆ گەشتەکە؟</h2>
+                <p class="text-gray-500 font-bold text-sm">تەنها ناو و ئاڤاتار هەڵبژێرە.</p>
+            </div>
+            
+            <form @submit.prevent="joinSession" class="surface-card p-8 rounded-[2rem] shadow-xl border-2 space-y-6">
+                <div>
+                    <label class="block font-black mb-2 text-sm text-gray-700 dark:text-gray-300">کۆدی چوونەژوورەوە</label>
+                    <input v-model="studentForm.code" type="text" required class="w-full p-4 text-center text-4xl font-black tracking-widest border-2 rounded-2xl focus:border-blue-500 outline-none uppercase bg-gray-100 dark:bg-slate-800 text-blue-600" dir="ltr" :readonly="!!urlParamsSession">
+                </div>
+                <div>
+                    <label class="block font-black mb-2 text-sm text-gray-700 dark:text-gray-300">ناوی تەواوی تۆ</label>
+                    <input v-model="studentForm.name" type="text" required placeholder="ناوەکەت لێرە بنووسە..." class="w-full p-4 border-2 rounded-2xl focus:border-blue-500 outline-none font-black text-xl bg-gray-50 dark:bg-slate-800">
+                </div>
+                <div>
+                    <label class="flex justify-between font-black mb-3 text-sm text-gray-700 dark:text-gray-300">
+                        ئاڤاتار هەڵبژێرە <span class="text-4xl drop-shadow-md">{{ studentForm.avatar }}</span>
+                    </label>
+                    <div class="grid grid-cols-5 gap-3 h-40 overflow-y-auto p-3 bg-gray-100 dark:bg-slate-800 rounded-2xl border">
+                        <button type="button" v-for="avatar in avatarsList" :key="avatar" @click="studentForm.avatar = avatar" :class="{'ring-4 ring-blue-500 bg-white scale-110 shadow-lg': studentForm.avatar === avatar}" class="text-4xl p-2 rounded-xl transition-all filter grayscale-[0.3] hover:grayscale-0 hover:scale-110">
+                            {{ avatar }}
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="w-full touch-btn bg-emerald-500 text-white text-2xl font-black shadow-lg mt-4 hover:shadow-emerald-500/50" :disabled="isLoading">
+                    <span v-if="isLoading"><i class="fa-solid fa-spinner fa-spin"></i></span><span v-else>فڕین <i class="fa-solid fa-plane-up ms-2"></i></span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- VIEW: Student Play -->
+    <div v-if="view === 'play' && isConfigured" class="flex flex-col h-full bg-slate-900 text-white relative">
+        <div class="bg-slate-800 p-4 flex justify-between items-center border-b-2 border-slate-700 shadow-lg z-10">
+            <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                <div class="w-14 h-14 bg-slate-700 rounded-full flex items-center justify-center text-4xl border-2 border-slate-600 shadow-inner">{{ studentForm.avatar }}</div>
+                <div>
+                    <p class="font-black text-lg leading-tight">{{ studentForm.name }}</p>
+                    <p class="text-sm text-emerald-400 font-bold"><i class="fa-solid fa-star text-yellow-400"></i> {{ liveData.myScore }} خاڵ</p>
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+                <span class="bg-slate-700 text-xs font-black px-3 py-1.5 rounded-lg border border-slate-600 shadow-sm">
+                    <i class="fa-solid fa-circle text-[8px] me-1" :class="liveData.myStatus === 'answered' ? 'text-emerald-400' : 'text-yellow-400 animate-pulse'"></i> {{ liveData.myStatus === 'answered' ? 'وەڵامدراوە' : 'ئامادە' }}
+                </span>
+                <button v-if="!liveData.usedHint && projectorState.current_view === 'question' && liveData.myStatus !== 'answered' && timer.timeLeft > 0" @click="useHint" class="text-xs bg-yellow-500 text-black px-3 py-1.5 rounded-lg font-black shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 transition"><i class="fa-solid fa-lightbulb"></i> یارمەتی</button>
+            </div>
+        </div>
+
+        <!-- Timer Bar -->
+        <div v-if="projectorState.current_view === 'question' && timer.timeLeft > 0" class="w-full h-2 bg-slate-800 z-10">
+            <div class="h-full timer-bar" :style="{width: timerPercentage + '%'}" :class="timerPercentage > 30 ? 'bg-blue-500' : 'bg-red-500'"></div>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center p-6 relative overflow-hidden">
+            <!-- Sync Waiting States -->
+            <div v-if="['welcome', 'travel', 'leaderboard', 'destination', 'celebration', 'presentation'].includes(projectorState.current_view)" class="text-center space-y-8 animate-fade-in">
+                <div class="text-[8rem] animate-float drop-shadow-2xl" :class="projectorState.current_view === 'travel' ? 'text-yellow-400 animate-pulse' : 'text-blue-400'">
+                    {{ projectorState.current_view === 'travel' ? '🚀' : (projectorState.current_view === 'leaderboard' ? '🏆' : (projectorState.current_view === 'destination' ? '🗺️' : (projectorState.current_view === 'presentation' ? '📖' : '⏳'))) }}
+                </div>
+                <h2 class="text-3xl font-black leading-tight text-slate-100">سەیری شاشەی پڕۆژێکتۆرەکە بکە</h2>
+                <p class="text-slate-400 text-base font-bold">بابەتەکە لەلایەن مامۆستاوە شیکار دەکرێت لەسەر شاشەی سەرەکی.</p>
+                
+                <!-- Student virtual map field trip mini tracking -->
+                <div v-if="projectorState.current_view === 'destination' && activeDestination" class="p-4 bg-slate-800 border rounded-2xl text-right">
+                    <span class="text-xs font-black text-indigo-400 block mb-1">وێستگەی زانیاری ئێستا:</span>
+                    <span class="font-black text-sm block">{{ activeDestination.title }}</span>
+                    <p class="text-xs text-gray-400 mt-2">{{ activeDestination.interesting_fact }}</p>
+                </div>
+
+                <div v-if="liveData.badges.length > 0" class="mt-10 pt-8 border-t-2 border-slate-800">
+                    <h3 class="text-sm text-slate-500 font-black mb-4 uppercase tracking-wider">باجە بەدەستهاتووەکانت</h3>
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <span v-for="(b, i) in liveData.badges" :key="i" class="bg-slate-800 border-2 border-slate-600 px-4 py-2 rounded-full text-sm font-black text-yellow-400 shadow-lg flex items-center gap-2"><i :class="b.icon"></i> {{ b.name }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Question Response Area -->
+            <div v-if="projectorState.current_view === 'question' && activeQuestion" class="h-full flex flex-col justify-end pb-6 animate-fade-in">
+                <div class="bg-slate-800/90 backdrop-blur p-6 rounded-[2rem] border-2 border-slate-600 mb-8 shadow-2xl text-center">
+                    <h3 class="text-2xl font-black leading-relaxed">{{ activeQuestion.question_text }}</h3>
+                </div>
+                <div class="grid grid-cols-1 gap-4">
+                    <button v-for="(option, index) in activeQuestion.options" :key="index" @click="submitAnswer(index)" 
+                        :disabled="liveData.myStatus === 'answered' || (liveData.usedHint && liveData.eliminatedOptions.includes(index)) || timer.timeLeft === 0"
+                        class="touch-btn text-xl font-black border-4 transition-all duration-300 min-h-[80px] relative overflow-hidden text-right px-6 shadow-lg" :class="getStudentOptionClass(index)">
+                        {{ option.text }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Feedback Area -->
+            <div v-if="projectorState.current_view === 'explanation'" class="text-center space-y-8 animate-fade-in">
+                <div v-if="liveData.lastAnswerCorrect" class="inline-block bg-emerald-500/20 text-emerald-400 p-10 rounded-full border-4 border-emerald-500/50 text-[5rem] shadow-[0_0_50px_rgba(16,185,129,0.4)] animate-bounce"><i class="fa-solid fa-check"></i></div>
+                <div v-if="liveData.lastAnswerCorrect === false" class="inline-block bg-red-500/20 text-red-400 p-10 rounded-full border-4 border-red-500/50 text-[5rem] shadow-[0_0_50px_rgba(239,68,68,0.4)]"><i class="fa-solid fa-xmark"></i></div>
+                <div v-if="liveData.lastAnswerCorrect === null" class="inline-block bg-slate-800 text-slate-400 p-10 rounded-full border-4 border-slate-600 text-[5rem]"><i class="fa-solid fa-clock"></i></div>
+                
+                <h2 class="text-5xl font-black">{{ liveData.lastAnswerCorrect ? 'زۆر باشە!' : (liveData.lastAnswerCorrect === false ? 'نەپێکای!' : 'وەڵامت نەداوەتەوە') }}</h2>
+                <div v-if="liveData.lastAnswerCorrect" class="text-emerald-400 font-black text-3xl drop-shadow-md">+١٠٠٠ خاڵ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: Projector (Immersive 3D Atmosphere + Presentation Slide view) -->
+    <div v-if="view === 'projector' && isConfigured" class="w-full h-full bg-black text-white flex flex-col overflow-hidden relative font-sans select-none">
+        
+        <!-- Full Screen Lock Overlay -->
+        <div v-if="!isFullscreen" class="absolute inset-0 z-[200] bg-slate-900 flex flex-col items-center justify-center p-8 text-center">
+            <div class="text-[6rem] mb-8 text-blue-500 animate-pulse"><i class="fa-solid fa-expand"></i></div>
+            <h2 class="text-4xl font-black mb-4">ئامادەی بۆ دەستپێکردنی گەشتەکە؟</h2>
+            <p class="text-gray-400 text-xl font-bold mb-10">پێویستە پڕۆژێکتۆرەکە لە دۆخی شاشەی تەواو (Full Screen) بێت.</p>
+            <button @click="enterFullScreen" class="bg-blue-600 text-white px-12 py-6 rounded-[2rem] text-3xl font-black shadow-[0_0_30px_rgba(37,99,235,0.5)] hover:scale-105 transition"><i class="fa-solid fa-play me-3"></i> دەستپێکردنی پڕۆژێکتۆر</button>
+        </div>
+
+        <!-- Dynamic 3D Environment Background Canvas -->
+        <canvas id="bg-3d-canvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/80 pointer-events-none z-0"></div>
+
+        <!-- Laser Pointer Synchronization Dot overlay -->
+        <div v-if="projectorState.laser_active" class="laser-pointer-spot absolute w-10 h-10 rounded-full z-50 pointer-events-none -translate-x-1/2 -translate-y-1/2 transition-all duration-75" :style="{left: projectorState.laser_x + '%', top: projectorState.laser_y + '%'}"></div>
+
+        <!-- Spotlight Shadow Overlay -->
+        <div v-if="projectorState.celebration_mode" class="spotlight-overlay absolute inset-0 z-40 pointer-events-none" :style="{'--spot-x': projectorState.laser_x + '%', '--spot-y': projectorState.laser_y + '%'}"></div>
+
+        <!-- Blank Screen Overlay Mode -->
+        <div v-if="projectorState.blank_screen" class="absolute inset-0 bg-black z-[150] flex items-center justify-center">
+            <span class="text-slate-700 text-2xl font-black font-mono tracking-widest animate-pulse"><i class="fa-solid fa-eye-slash me-2"></i> شاشە ماتکراوە</span>
+        </div>
+
+        <!-- Live Header Info Sync (Projector Only) -->
+        <div v-if="projectorState.current_view !== 'travel'" class="absolute top-10 left-10 right-10 flex justify-between items-start z-30 pointer-events-none transition-opacity duration-1000">
+            <div class="bg-black/60 backdrop-blur-3xl px-12 py-6 rounded-[3rem] border-2 border-white/10 shadow-2xl flex items-center gap-8">
+                <div class="text-right">
+                    <p class="text-gray-400 text-base font-black uppercase tracking-wider mb-2">بەستەری چوونەژوورەوە <i class="fa-solid fa-link text-blue-400 ms-1"></i></p>
+                    <p class="text-3xl font-black text-white bg-white/10 px-6 py-3 rounded-2xl inline-block font-mono tracking-wider" dir="ltr">{{ joinUrlDisplay }}</p>
+                </div>
+            </div>
+            
+            <!-- Giant Circular Timer for Question -->
+            <div v-if="projectorState.current_view === 'question'" class="relative w-32 h-32 flex items-center justify-center bg-black/50 rounded-full backdrop-blur">
+                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#1E293B" stroke-width="10"></circle>
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" 
+                        class="transition-all duration-1000 ease-linear" :class="timerPercentage > 30 ? 'text-blue-500' : 'text-red-500'"
+                        :stroke-dasharray="283" :stroke-dashoffset="283 - (283 * timerPercentage) / 100"></circle>
+                </svg>
+                <span class="absolute text-4xl font-black" :class="timerPercentage > 30 ? 'text-white' : 'text-red-500 animate-pulse'">{{ timer.timeLeft }}</span>
+            </div>
+
+            <div class="bg-black/60 backdrop-blur-3xl px-10 py-6 rounded-[3rem] border-2 border-white/10 shadow-2xl flex items-center gap-6">
+                <span class="text-6xl font-black text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]">{{ liveData.students.length }}</span>
+                <div class="text-right"><p class="text-gray-400 text-sm font-black uppercase mb-1">قوتابی بەشدار</p><p class="text-white font-black text-lg">کۆمەڵەی کارلێکەر</p></div>
+            </div>
+        </div>
+
+        <!-- Cinematic Scenes Area (Projector Main Presentation Window) -->
+        <div class="flex-1 flex items-center justify-center relative w-full h-full z-10 p-16">
+            
+            <!-- Scene: Welcome (QR) -->
+            <div v-if="projectorState.current_view === 'welcome'" class="flex flex-col items-center justify-center space-y-20 animate-fade-in w-full max-w-[80rem]">
+                <div class="text-center space-y-8">
+                    <h1 class="text-[7rem] lg:text-[10rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-blue-300 drop-shadow-2xl leading-none">گەشتی فێربوون</h1>
+                    <p class="text-5xl text-blue-300 font-light tracking-wide">بە کامێرای مۆبایلەکەت کۆدەکە سکان بکە بۆ بەشداریکردن</p>
+                </div>
+                <div class="bg-white/5 backdrop-blur-3xl p-20 rounded-[5rem] border-2 border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex items-center gap-20 transform transition duration-1000 relative overflow-hidden">
+                    <div class="bg-white p-8 rounded-[3rem] shadow-2xl relative z-10">
+                        <div id="projector-qrcode" class="w-[350px] h-[350px]"></div>
+                    </div>
+                    <div class="text-right space-y-8 relative z-10">
+                        <p class="text-4xl text-gray-300 font-bold">یان ئەم کۆدە بنووسە:</p>
+                        <p class="text-[6rem] font-black text-yellow-400 bg-black/80 px-12 py-6 rounded-[3rem] tracking-widest border-2 border-yellow-400/40 shadow-inner" dir="ltr">{{ activeSessionCode }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scene: Interactive Presentation Slide View -->
+            <div v-if="projectorState.current_view === 'presentation'" class="w-full max-w-[85rem] h-[75vh] flex flex-col justify-between items-center relative z-20" :class="getTransitionClass()">
+                <div class="w-full h-full bg-slate-900/90 backdrop-blur-md rounded-[4rem] border-2 border-white/10 p-16 flex flex-col justify-between shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+                    <div class="flex justify-between items-center border-b border-white/10 pb-6">
+                        <span class="text-xs bg-indigo-600 text-white px-4 py-1.5 rounded-full font-black uppercase tracking-widest"><i class="fa-solid fa-graduation-cap me-1"></i> پلاتفۆرمی نیشتمانی</span>
+                        <span class="text-xl font-bold text-indigo-300">بەشی چوارەم: وانەی گەردوونناسی</span>
+                    </div>
+
+                    <!-- Slide Content Area -->
+                    <div class="my-10 flex flex-col md:flex-row gap-12 items-center text-right">
+                        <div class="flex-1 space-y-6">
+                            <h2 class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-300">{{ slidesList[projectorState.current_slide]?.title }}</h2>
+                            <p class="text-2xl md:text-3xl text-gray-300 leading-relaxed font-light">{{ slidesList[projectorState.current_slide]?.body }}</p>
+                        </div>
+                        <div class="w-full md:w-1/2 h-80 rounded-[2.5rem] bg-cover bg-center border-4 border-white/10 shadow-2xl" :style="{backgroundImage: 'url(' + slidesList[projectorState.current_slide]?.image + ')'}"></div>
+                    </div>
+
+                    <div class="flex justify-between items-center border-t border-white/10 pt-6">
+                        <span class="text-lg font-bold text-slate-400 font-mono">سلایدی {{ projectorState.current_slide + 1 }} لە {{ slidesList.length }}</span>
+                        <div class="flex gap-2">
+                            <span v-for="(dot, idx) in slidesList" :key="idx" class="w-3.5 h-3.5 rounded-full transition-all" :class="idx === projectorState.current_slide ? 'bg-indigo-400 scale-125' : 'bg-slate-700'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scene: Interactive Virtual Field Trip with 360 viewer -->
+            <div v-if="projectorState.current_view === 'destination' && activeDestination" class="w-full max-w-[90rem] flex flex-col items-center justify-center space-y-8 z-20">
+                <div class="w-full bg-slate-900/95 backdrop-blur rounded-[4rem] border-2 border-white/10 p-12 flex flex-col justify-between shadow-2xl text-right">
+                    <div class="flex justify-between items-center border-b border-white/10 pb-4 mb-6">
+                        <span class="text-xs bg-indigo-600 text-white px-4 py-1 rounded-full font-black uppercase tracking-widest"><i class="fa-solid fa-street-view me-1"></i> گەشتی مەجازی: پانۆراما</span>
+                        <span class="text-xl font-bold text-indigo-300">{{ activeDestination.title }}</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="md:col-span-2 space-y-4">
+                            <!-- Drag Panning Simulated Panoramic Viewport -->
+                            <div class="panorama-container" @mousedown="startDragPan" @mousemove="onDragPan" @mouseup="stopDragPan" @mouseleave="stopDragPan">
+                                <div class="panorama-image" :style="{backgroundImage: `url(${activeDestination.image_url})`, transform: `translateX(${fieldTripPanDeg}px)`}"></div>
+                                <div class="absolute inset-x-0 bottom-4 text-center pointer-events-none">
+                                    <span class="bg-black/80 px-4 py-2 rounded-full text-xs font-black"><i class="fa-solid fa-arrows-left-right"></i> پەنجە بخشێنە بۆ تەماشاکردنی دەوروبەر</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-800/80 p-8 rounded-3xl border border-white/10 flex flex-col justify-between">
+                            <div>
+                                <span class="text-xs text-amber-400 font-bold block mb-1">تێبینی زانستی</span>
+                                <h3 class="text-2xl font-black text-white mb-4">{{ activeDestination.title }}</h3>
+                                <p class="text-sm text-gray-300 leading-relaxed font-light">{{ activeDestination.interesting_fact }}</p>
+                            </div>
+                            <div class="mt-6 border-t border-slate-700 pt-4 text-xs space-y-2">
+                                <div class="flex justify-between"><span class="text-gray-400">هاوکۆلکە:</span> <span class="font-mono text-indigo-300">35.12° N, 46.11° E</span></div>
+                                <div class="flex justify-between"><span class="text-gray-400">ئامانج:</span> <span class="text-emerald-400 font-bold">Bloom's: Understand</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scene: Interactive Question -->
+            <div v-if="projectorState.current_view === 'question' && activeQuestion" class="w-full max-w-[90rem] flex flex-col items-center justify-center space-y-16 h-full relative animate-fade-in z-20">
+                <div class="w-full text-center space-y-10">
+                    <h2 class="text-5xl md:text-[5rem] font-black leading-tight text-white drop-shadow-2xl bg-black/60 p-16 rounded-[4rem] backdrop-blur-2xl border-2 border-white/10">{{ activeQuestion.question_text }}</h2>
+                </div>
+                <div class="grid grid-cols-2 gap-10 w-full px-16">
+                    <div v-for="(option, index) in activeQuestion.options" :key="index" class="bg-slate-800/90 backdrop-blur-2xl border-4 border-slate-600 text-5xl font-black p-12 rounded-[3rem] flex items-center justify-center text-center shadow-2xl relative overflow-hidden transition-all duration-700" :class="{'opacity-20 scale-95 grayscale': projectorState.reveal_answer && !option.is_correct, 'bg-emerald-600 border-emerald-400 scale-[1.05] shadow-[0_0_80px_rgba(16,185,129,0.8)] z-10': projectorState.reveal_answer && option.is_correct}">
+                        <div v-if="!projectorState.reveal_answer" class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-b" :class="getOptionColorClass(index)"></div>
+                        {{ option.text }}
+                    </div>
+                </div>
+                <!-- Realtime Floating Avatars -->
+                <div class="absolute bottom-12 w-full flex justify-center gap-4 flex-wrap px-20">
+                    <div v-for="student in liveData.students" :key="student.id" class="w-20 h-20 rounded-full flex items-center justify-center text-4xl transition-all duration-500 border-4"
+                         :class="student.status === 'answered' ? 'bg-emerald-500/40 border-emerald-400 scale-110 shadow-[0_0_20px_rgba(16,185,129,0.6)]' : 'bg-slate-800/60 border-slate-700 opacity-50 grayscale'">
+                        {{ student.avatar }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scene: Explanation -->
+            <div v-if="projectorState.current_view === 'explanation' && activeQuestion" class="w-full h-full flex flex-col justify-center max-w-[80rem] animate-fade-in z-20">
+                <div class="bg-black/80 backdrop-blur-3xl p-20 rounded-[5rem] w-full text-right border-2 border-white/10 shadow-[0_0_150px_rgba(0,0,0,0.8)] relative overflow-hidden">
+                    <div class="absolute -left-16 -top-16 text-[20rem] opacity-5 text-blue-500"><i class="fa-solid fa-graduation-cap"></i></div>
+                    <h3 class="text-5xl text-blue-400 font-black mb-12 flex items-center relative z-10"><i class="fa-solid fa-lightbulb me-6 text-6xl text-yellow-400 animate-pulse"></i> ڕوونکردنەوەی زانستی</h3>
+                    <p class="text-[3rem] text-gray-100 leading-relaxed font-light relative z-10">{{ activeQuestion.explanation || 'هیچ ڕوونکردنەوەیەک نەنووسراوە.' }}</p>
+                </div>
+            </div>
+
+            <!-- Scene: Leaderboard -->
+            <div v-if="projectorState.current_view === 'leaderboard'" class="w-full max-w-[70rem] text-center flex flex-col items-center justify-center h-full animate-fade-in z-20">
+                <i class="fa-solid fa-crown text-[10rem] text-yellow-400 mb-10 drop-shadow-[0_0_80px_rgba(250,204,21,0.8)]"></i>
+                <h2 class="text-[5rem] font-black text-white mb-20 tracking-widest bg-black/50 px-16 py-4 rounded-full backdrop-blur">ڕیزبەندی باشترینەکان</h2>
+                <div class="w-full space-y-8">
+                    <div v-for="(student, index) in sortedStudents.slice(0,5)" :key="student.id" class="bg-black/70 backdrop-blur-3xl p-10 rounded-[3rem] flex items-center justify-between border-2 border-white/10 shadow-2xl transform transition duration-700 hover:scale-[1.02]" :class="{'border-yellow-400 bg-yellow-900/40 scale-[1.05] shadow-[0_0_80px_rgba(250,204,21,0.3)]': index === 0}">
+                        <div class="flex items-center space-x-10 rtl:space-x-reverse text-5xl font-black text-white">
+                            <span class="w-24 h-24 flex items-center justify-center bg-white/10 rounded-full text-gray-300 border-2 border-white/20 text-4xl" :class="{'text-yellow-400 bg-yellow-500/30 border-yellow-400 text-[4rem] shadow-inner': index === 0}">{{ index + 1 }}</span>
+                            <span class="text-[5rem] drop-shadow-lg">{{ student.avatar }}</span>
+                            <span class="tracking-wide">{{ student.name || 'قوتابی' }}</span>
+                        </div>
+                        <div class="text-[5rem] font-black text-emerald-400 tracking-wider drop-shadow-md">{{ student.score }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scene: Immersive Journey styles transition animations container -->
+            <div v-if="projectorState.current_view === 'travel'" class="w-full h-full relative flex items-center justify-center overflow-hidden z-20">
+                <div class="absolute w-[200%] h-2 bg-white/20 border-dashed border-b-[8px] border-white/40"></div>
+                <div class="text-[20rem] absolute drop-shadow-[0_0_80px_rgba(255,255,255,0.8)] z-10" :class="getJourneyStyleAnimationClass()">
+                    {{ getJourneyStyleVehicleEmoji() }}
+                </div>
+                <h2 class="absolute bottom-40 text-[6rem] font-black text-yellow-400 tracking-wider animate-pulse drop-shadow-2xl bg-black/50 px-16 py-6 rounded-full backdrop-blur-md">بەرەو وێستگەی داهاتوو...</h2>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    /*
+      ======================================================================
+      FINAL PRODUCTION CONFIGURATION & NEW COLLABORATIVE PRESENTATION ENGINE
+      ======================================================================
+    */
+    const SUPABASE_URL = 'https://wmhuetfqmlpobbnsqorr.supabase.co/rest/v1/'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtaHVldGZxbWxwb2JibnNxb3JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMzcxNTgsImV4cCI6MjA5OTcxMzE1OH0.f_a247jJYG2edXuAr4kNTqrbo03mbOXLEgCAmHkjgfU';
+    
+    // Check if fully configured
+    const isConfigured = !SUPABASE_URL.includes('YOUR_SUPABASE_URL');
+    
+    let supabaseClient = null;
+    if (isConfigured) {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
-  } catch(e) {}
-}
 
-window.addEventListener('storage', (e) => {
-  if (e.key === 'lj_state_sync' && (state.view === 'projector' || state.view === 'student')) {
-    render();
-  }
-});
+    const AVATARS = ['🦁', '🦊', '🦅', '🦉', '🦖', '🐬', '🐼', '🐯', '🦋', '👨‍🚀', '🦸‍♀️', '🧙‍♂️', '🕵️‍♀️', '🥷', '👩‍🔬', '👨‍🎨', '🤖', '👽', '🦄', '🚀'];
 
-// Initial Render
-render();
+    const app = Vue.createApp({
+        data() {
+            return {
+                isConfigured: isConfigured,
+                view: 'home',
+                isLoading: false,
+                notification: { show: false, message: '', type: 'info', icon: '' },
+                a11y: { menuOpen: false, highContrast: false, largeText: false },
+                
+                // Auth & Roles
+                loginRole: 'teacher',
+                authForm: { email: '', password: '', error: null },
+                userProfile: null,
+                
+                // Admin State
+                adminData: { schools: [], teachers: [] },
+                showAddTeacherModal: false,
+                newTeacher: { name: '', email: '', password: '', school_id: null },
+                
+                // Session & Routing
+                activeSessionCode: '',
+                activeSessionId: null,
+                urlParamsSession: '',
+                joinUrlDisplay: '',
+                
+                // Teacher State & Studio Tab
+                teacherData: { journeys: [], publicJourneys: [] },
+                studioTab: 'timeline',
+                controllerTab: 'remote',
+
+                // Co-Pilot Mode States
+                coPilotRole: 'main', // 'main' | 'assistant' | 'observer'
+                activeCoPilots: [
+                    { id: 'cp1', name: 'م. ئالان', role: 'Assistant' },
+                    { id: 'cp2', name: 'م. کاروان', role: 'Observer' }
+                ],
+
+                // Voice Narration & Audio engine states
+                narrationLang: 'ku', // 'ku' | 'en'
+                isRecording: false,
+                mediaRecorder: null,
+                audioChunks: [],
+                recordedAudioUrl: null,
+
+                // Virtual Field Trip interactive state
+                fieldTripPanDeg: 0,
+                isDraggingPan: false,
+                dragStartX: 0,
+
+                // 10 Journey Styles Definitions
+                activeJourneyStyle: 'airplane',
+                journeyStyles: [
+                    { id: 'airplane', icon: '✈️', name: 'گەشتی ئاسمانی', desc: 'فڕین لە نێوان شارە جیاوازەکان بە فڕۆکە', vehicle: '✈️', anim: 'animate-style-airplane' },
+                    { id: 'railway', icon: '🚂', name: 'هێڵی ئاسن', desc: 'گەشت بە شەمەندەفەر بەناو چیاکان', vehicle: '🚂', anim: 'animate-style-railway' },
+                    { id: 'ocean', icon: '🚢', name: 'دەریایی', desc: 'تێپەڕین بەناو زەریاکان بە کەشتی گەورە', vehicle: '🚢', anim: 'animate-style-ocean' },
+                    { id: 'road', icon: '🚗', name: 'جادە و ڕێگا', desc: 'گەشتی جادە بە ئۆتۆمبێلی خێرا', vehicle: '🚗', anim: 'animate-style-road' },
+                    { id: 'space', icon: '🚀', name: 'کۆسمۆس و فەزا', desc: 'گەشت بەناو ئەستێرەکان بە موشەک', vehicle: '🚀', anim: 'animate-style-space' },
+                    { id: 'river', icon: '🌊', name: 'ڕووبار', desc: 'گەشتی دەریایی بە بەلەم لە سەرچاوەوە', vehicle: '🛶', anim: 'animate-style-ocean' },
+                    { id: 'history', icon: '🏛', name: 'مێژووی دێرین', desc: 'گەشت بەناو کات و سەردەمە جیاوازەکان', vehicle: '⏳', anim: 'animate-style-road' },
+                    { id: 'treasure', icon: '🗺', name: 'گەنجینە', desc: 'دۆزینەوەی نەخشەی شوێنە پیرۆزەکان', vehicle: '🧭', anim: 'animate-style-airplane' },
+                    { id: 'escape', icon: '🧩', name: 'ڕزگاربوون', desc: 'تێپەڕینی مەتەڵەکان بۆ دەرچوون', vehicle: '🗝', anim: 'animate-style-railway' },
+                    { id: 'nature', icon: '🏕', name: 'سروشت', desc: 'کەمپین لە دارستان و بیابانە کێوییەکان', vehicle: '⛺', anim: 'animate-style-road' }
+                ],
+
+                // Custom Visual Lesson Timeline Builder
+                customTimeline: [
+                    { id: 't1', type: 'Welcome', title: 'بەخێرهاتنی قوتابیان و پەیامی سەرەتا' },
+                    { id: 't2', type: 'PowerPoint', title: 'ناساندنی سیستەمی کۆمەڵەی خۆر (سلاید)' },
+                    { id: 't3', type: 'Quiz', title: 'تاقیکردنەوەی خێرا: دووری زەوی لە خۆر' },
+                    { id: 't4', type: 'Virtual Trip', title: 'گەشتی مەجازی: پانۆرامای گەردوونناسی' },
+                    { id: 't5', type: 'Leaderboard', title: 'ڕاگەیاندنی ئەنجامەکان و ڕیزبەندی خاڵەکان' }
+                ],
+                activeTimelineStepIndex: 0,
+                
+                // Dynamic Slides Content Database
+                slidesList: [
+                    { title: "سیستەمی گەردوون و کۆمەڵەی خۆر", body: "کۆمەڵەی خۆر پێکهاتووە لە ئەستێرەی خۆر لە ناوەڕاستدا و چواردەوری بە هەشت گەڕەستێرە و تەنەکانی تر دەوردراوە.", image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600" },
+                    { title: "گەڕەستێرەی زەوی (Earth)", body: "زەوی تاکە شوێنە لە گەردووندا کە تا ئێستا بە فەرمی تێیدا ژیان دۆزرابێتەوە، سێیەمی دوورترین گەڕەستێرەیە لە خۆرەوە.", image: "https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?q=80&w=600" },
+                    { title: "خۆر: سەرچاوەی وزە و ڕووناکی", body: "ئەستێرەیەکی مەزنی گازی هایدرۆجین و هیلیۆمە کە کێشکردنی بەهێزی هەموو گەڕەستێرەکان لە چواردەوریدا جێگیر دەکات.", image: "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?q=80&w=600" }
+                ],
+                
+                // Interactive 3D Ambient Themes
+                bgThemes: [
+                    { id: 'space', name: 'کۆسمۆسی بۆشایی', icon: '🌌' },
+                    { id: 'ocean', name: 'ژیانی ژێر دەریا', icon: '🐠' },
+                    { id: 'future', name: 'شاری داهاتوو', icon: '🏙️' },
+                    { id: 'forest', name: 'دارستانی چرۆکان', icon: '🌳' }
+                ],
+
+                // Transition Styles
+                transitionsList: [
+                    { id: 'fade', name: 'هێمنبوونەوە (Fade)' },
+                    { id: 'zoom', name: 'نزیکبوونەوە (Zoom)' },
+                    { id: 'push', name: 'پاڵدان (Push)' }
+                ],
+
+                // AI Generator Configuration
+                aiSelectedSource: 'pptx',
+                aiNumQuestions: 3,
+
+                // Simulated Local Laser Pointer Tracking
+                localLaserX: 50,
+                localLaserY: 50,
+                
+                // Projector & Realtime Sync State Extensions
+                isFullscreen: false,
+                projectorState: { 
+                    current_view: 'welcome', 
+                    reveal_answer: false, 
+                    current_slide: 0, 
+                    total_slides: 3,
+                    active_theme: 'space',
+                    transition_effect: 'fade',
+                    laser_x: 50,
+                    laser_y: 50,
+                    laser_active: false,
+                    blank_screen: false,
+                    celebration_mode: false,
+                    journey_style: 'airplane',
+                    field_trip_pan: 0
+                },
+                
+                activeDestination: null,
+                activeQuestion: null,
+                
+                // Timer
+                timer: { timeLeft: 0, total: 30, interval: null },
+                
+                // Student State
+                studentForm: { name: '', code: '', avatar: '🦁' },
+                liveData: { students: [], myStatus: 'waiting', myScore: 0, usedHint: false, eliminatedOptions: [], lastAnswerCorrect: null, badges: [] },
+                avatarsList: AVATARS,
+                
+                realtimeChannel: null,
+                deviceId: localStorage.getItem('device_id') || this.generateUUID(),
+
+                // Three.js instances for dynamic rendering
+                threeScene: null,
+                threeCamera: null,
+                threeRenderer: null,
+                threeParticles: null
+            }
+        },
+        computed: {
+            sortedStudents() { return [...this.liveData.students].sort((a, b) => b.score - a.score); },
+            answeredCount() { return this.liveData.students.filter(s => s.status === 'answered').length; },
+            timerPercentage() { return this.timer.total > 0 ? (this.timer.timeLeft / this.timer.total) * 100 : 0; },
+            coPilotRoleName() {
+                const map = { 'main': 'مامۆستای سەرەکی', 'assistant': 'مامۆستای یاریدەدەر', 'observer': 'چاودێر' };
+                return map[this.coPilotRole] || 'سەرەکی';
+            }
+        },
+        mounted() {
+            if(!isConfigured) return;
+            localStorage.setItem('device_id', this.deviceId);
+            this.applyA11y();
+            this.handleRouting();
+        },
+        beforeUnmount() {
+            this.clearTimer();
+            if(this.realtimeChannel) this.realtimeChannel.unsubscribe();
+        },
+        watch: {
+            'a11y.highContrast'(val) { localStorage.setItem('a11y-contrast', val); },
+            'a11y.largeText'(val) { localStorage.setItem('a11y-text', val); },
+            view(v) {
+                this.updateUrlParam('view', v);
+                if(v === 'projector') {
+                    this.$nextTick(() => {
+                        this.generateRealQR('projector-qrcode');
+                        this.initThreeJSAmbient();
+                    });
+                }
+                if(v === 'teacher-reports') this.$nextTick(this.renderChart);
+            },
+            'projectorState.active_theme'(newTheme) {
+                if (this.view === 'projector') {
+                    this.updateThreeJSTheme(newTheme);
+                }
+            },
+            'projectorState.field_trip_pan'(newVal) {
+                if (this.view === 'projector') {
+                    this.fieldTripPanDeg = newVal;
+                }
+            }
+        },
+        methods: {
+            bypassConfiguration() {
+                // Instantly inject complete Mock context so school demo is fully functional offline/mocked
+                this.isConfigured = true;
+                this.userProfile = { id: 't_mock', full_name: 'مامۆستا نەوزاد', role: 'teacher' };
+                this.teacherData.journeys = [
+                    { id: 'j1', title: 'مەلەزەمەی زانستی گشتی', description: 'وانەی کۆمەڵەی خۆر و بۆشایی بۆ پۆلی هەشتەم', timeline: this.customTimeline, journey_style: 'airplane' },
+                    { id: 'j2', title: 'دەریا و ڕووبارەکان', description: 'گەشتێک بەناو ڕووبارەکانی کوردستان', timeline: this.customTimeline, journey_style: 'river' }
+                ];
+                this.adminData.teachers = [
+                    { id: 't1', full_name: 'مامۆستا نەوزاد', subject_specialty: 'فیزیا و زانست', is_active: true }
+                ];
+                this.liveData.students = [
+                    { id: 's1', name: 'ژیار', avatar: '🦁', score: 2500, status: 'waiting' },
+                    { id: 's2', name: 'لارا', avatar: '🦋', score: 3200, status: 'answered' }
+                ];
+                
+                this.activeQuestion = {
+                    id: 'q101',
+                    question_text: "گەڕەستێرەی زەوی چەندەمین دوورترین تەنە لە ئەستێرەی خۆرەوە؟",
+                    options: [
+                        { text: "یەکەمین گەڕەستێرە", is_correct: false },
+                        { text: "سێیەمین گەڕەستێرە", is_correct: true },
+                        { text: "پێنجەمین گەڕەستێرە", is_correct: false },
+                        { text: "هەشتەمین گەڕەستێرە", is_correct: false }
+                    ],
+                    explanation: "زەوی سێیەمین نزیکترین هەسارەیە لە خۆرەوە کە ناوچەی مامناوەندی گونجاوی بۆ ژیان دروست دەکات."
+                };
+
+                this.activeDestination = {
+                    title: "ڕێڕەوی گەردوونناسی نیشتمانی",
+                    interesting_fact: "گەلی تیشکی گەردوون بە درێژایی ملیۆنان ساڵ بە ئاسمانی وێستگەکەدا تێپەڕ دەبێت.",
+                    image_url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200"
+                };
+
+                this.view = 'teacher-home';
+                this.showNotify('دۆخی تاقیکردنەوەی خێرا بە داتا چالاککرا', 'success');
+            },
+            generateUUID() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); },
+            showNotify(msg, type='info', icon='fa-solid fa-circle-info') { this.notification = { show: true, message: msg, type, icon }; setTimeout(() => this.notification.show = false, 4000); },
+            navigate(v, params={}) { if(params.role) this.loginRole = params.role; this.view = v; },
+            getOptionColorClass(index) { const colors = ['from-blue-500', 'from-emerald-500', 'from-yellow-500', 'from-purple-500']; return colors[index % 4]; },
+            getStudentOptionClass(index) {
+                if(this.liveData.usedHint && this.liveData.eliminatedOptions.includes(index)) return 'opacity-20 bg-slate-800 text-slate-500 line-through border-slate-800';
+                if(this.liveData.myStatus === 'answered') return 'bg-slate-800 border-slate-700 opacity-50';
+                return 'bg-slate-800 border-slate-500 hover:border-blue-400 hover:bg-slate-700';
+            },
+
+            // Timer Logic
+            startTimer(duration) {
+                this.clearTimer();
+                this.timer.total = duration;
+                this.timer.timeLeft = duration;
+                this.timer.interval = setInterval(() => {
+                    if(this.timer.timeLeft > 0) this.timer.timeLeft--;
+                    else this.clearTimer();
+                }, 1000);
+            },
+            clearTimer() { clearInterval(this.timer.interval); },
+
+            // Routing
+            handleRouting() {
+                const params = new URLSearchParams(window.location.search);
+                const reqView = params.get('view');
+                const reqSession = params.get('session');
+                
+                if (reqSession) {
+                    this.activeSessionCode = reqSession;
+                    this.urlParamsSession = reqSession;
+                    this.studentForm.code = reqSession;
+                    this.joinUrlDisplay = `${window.location.origin}${window.location.pathname}?view=join&session=${reqSession}`;
+                }
+
+                if (reqView === 'projector' && reqSession) {
+                    this.view = 'projector';
+                    this.resolveSessionCode(reqSession).then(id => {
+                        if(id) { this.activeSessionId = id; this.setupRealtimeSync('projector', id); }
+                    });
+                } else if (reqView === 'join') {
+                    this.view = 'join';
+                } else if (reqView === 'control' && reqSession) {
+                    this.view = 'control';
+                    this.resolveSessionCode(reqSession).then(id => {
+                        if(id) { 
+                            this.activeSessionId = id; 
+                            this.setupRealtimeSync('control', id); 
+                            // Auto assign role based on suffix
+                            if(window.location.hash.includes('CP')) {
+                                this.coPilotRole = 'assistant';
+                            }
+                        }
+                    });
+                } else {
+                    this.checkAuthSession();
+                }
+            },
+            updateUrlParam(key, value) {
+                const url = new URL(window.location);
+                url.searchParams.set(key, value);
+                if(this.activeSessionCode) url.searchParams.set('session', this.activeSessionCode);
+                window.history.pushState({}, '', url);
+            },
+            applyA11y() {
+                this.a11y.highContrast = localStorage.getItem('a11y-contrast') === 'true';
+                this.a11y.largeText = localStorage.getItem('a11y-text') === 'true';
+            },
+
+            // Auth
+            async checkAuthSession() {
+                if (!supabaseClient) return;
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if(session) await this.loadUserProfile(session.user.id);
+            },
+            async handleAuth() {
+                this.authForm.error = null;
+                this.isLoading = true;
+                try {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email: this.authForm.email, password: this.authForm.password });
+                    if(error) throw error;
+                    await this.loadUserProfile(data.user.id);
+                } catch (error) {
+                    this.authForm.error = 'ئیمەیڵ یان وشەی نهێنی هەڵەیە.';
+                } finally { this.isLoading = false; }
+            },
+            async loadUserProfile(userId) {
+                const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
+                if(data) {
+                    this.userProfile = data;
+                    if(data.role === 'admin') { this.view = 'admin-dashboard'; this.fetchAdminData(); }
+                    else { this.view = 'teacher-home'; this.fetchTeacherData(); }
+                }
+            },
+            async logout() { 
+                if (supabaseClient) await supabaseClient.auth.signOut();
+                this.userProfile = null; this.view = 'home'; 
+                this.updateUrlParam('view', 'home');
+            },
+
+            // Admin Logic
+            async fetchAdminData() {
+                const { data: tData } = await supabaseClient.from('profiles').select('*').eq('role', 'teacher');
+                const { data: sData } = await supabaseClient.from('schools').select('*');
+                if(tData) this.adminData.teachers = tData;
+                if(sData) {
+                    this.adminData.schools = sData;
+                    if(sData.length > 0) this.newTeacher.school_id = sData[0].id;
+                }
+            },
+            async toggleTeacherStatus(teacher) {
+                const { error } = await supabaseClient.from('profiles').update({ is_active: !teacher.is_active }).eq('id', teacher.id);
+                if(!error) teacher.is_active = !teacher.is_active;
+            },
+
+            // Timeline Builder Methods (Mobile Touch friendly reordering)
+            moveTimelineItem(idx, dir) {
+                const targetIdx = idx + dir;
+                if (targetIdx < 0 || targetIdx >= this.customTimeline.length) return;
+                const temp = this.customTimeline[idx];
+                this.customTimeline[idx] = this.customTimeline[targetIdx];
+                this.customTimeline[targetIdx] = temp;
+                this.showNotify('ڕیزبەندی وانەکە گۆڕدرا', 'success');
+            },
+            removeTimelineItem(idx) {
+                this.customTimeline.splice(idx, 1);
+                this.showNotify('میدیاکە لە هێڵی کاتی سڕایەوە', 'warning');
+            },
+            addTimelineItem(type, title, meta) {
+                this.customTimeline.push({
+                    id: 't_' + Date.now(),
+                    type,
+                    title,
+                    meta
+                });
+                this.showNotify('میدیای نوێ بۆ هێڵی کاتی زیادکرا', 'success');
+            },
+
+            // AI Question Generator calling the Gemini API
+            async generateQuestionsWithAI() {
+                this.isLoading = true;
+                const prompt = `دروستکردنی ٣ پرسیاری جۆراوجۆر بە زمانی کوردی سۆرانی دەربارەی سیستەمی کۆمەڵەی خۆر و گەردوون بۆ بەکارهێنانی لە پۆلدا. بە تەنها لە قالبێکی ڕوونی JSON بێت بەبێ هیچ تێکستێکی تر: [{"question_text": "text", "options": [{"text": "op1", "is_correct": false}, {"text": "op2", "is_correct": true}], "explanation": "explanation"}]`;
+                
+                try {
+                    const apiKey = ""; 
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                    
+                    const payload = {
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    const questions = JSON.parse(jsonText);
+
+                    if (questions && questions.length > 0) {
+                        this.activeQuestion = questions[0];
+                        this.showNotify('پرسیاری نوێ بە سەرکەوتوویی لە ڕێگەی AI جێگیرکرا!', 'success', 'fa-solid fa-robot');
+                    }
+                } catch(e) {
+                    this.activeQuestion = {
+                        question_text: "کاریگەری لاری تەوەری زەوی لە چی دایە؟",
+                        options: [
+                            { text: "دروستبوونی چوار وەرزەکە", is_correct: true },
+                            { text: "دروستبوونی شەو و ڕۆژ", is_correct: false },
+                            { text: "کۆنتڕۆڵکردنی کێشکردن", is_correct: false }
+                        ],
+                        explanation: "لاری تەوەری زەوی بە بڕی ٢٣.٥ پلە دەبێتە هۆی گۆڕانی بەرکەوتنی تیشکی خۆر لە نێوان باکوور و باشووردا و وەرزەکان دروست دەکات."
+                    };
+                    this.showNotify('سیستەمی پاڵپشتی ناوخۆیی فێرکاری پرسیارەکەی ئامادەکرد', 'success');
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            // Presentation Slide Controls & Integration
+            navigateSlide(dir) {
+                let nextSlide = this.projectorState.current_slide + dir;
+                if (nextSlide >= 0 && nextSlide < this.slidesList.length) {
+                    this.projectorState.current_slide = nextSlide;
+                    this.syncControllerToProjector();
+                }
+            },
+            resetPresentation() {
+                this.projectorState.current_slide = 0;
+                this.syncControllerToProjector();
+            },
+            toggleBlankScreen() {
+                this.projectorState.blank_screen = !this.projectorState.blank_screen;
+                this.syncControllerToProjector();
+            },
+            toggleSpotlight() {
+                this.projectorState.celebration_mode = !this.projectorState.celebration_mode;
+                this.syncControllerToProjector();
+            },
+            change3DTheme(themeId) {
+                this.projectorState.active_theme = themeId;
+                this.syncControllerToProjector();
+                this.showNotify('بابەتی پاشبنەمای سێ ڕەهەندی گۆڕدرا', 'success');
+            },
+            changeTransitionEffect(effectId) {
+                this.projectorState.transition_effect = effectId;
+                this.syncControllerToProjector();
+            },
+            getTransitionClass() {
+                return `slide-transition-${this.projectorState.transition_effect}`;
+            },
+
+            // Journey Style naming mapper
+            getJourneyStyleName(id) {
+                const found = this.journeyStyles.find(s => s.id === id);
+                return found ? found.name : 'ئاسمانی';
+            },
+            getJourneyStyleVehicleEmoji() {
+                const found = this.journeyStyles.find(s => s.id === this.projectorState.journey_style);
+                return found ? found.vehicle : '✈️';
+            },
+            getJourneyStyleAnimationClass() {
+                const found = this.journeyStyles.find(s => s.id === this.projectorState.journey_style);
+                return found ? found.anim : 'animate-style-airplane';
+            },
+
+            // Drag Panning trackpad for Virtual Field Trips
+            startDragPan(e) {
+                this.isDraggingPan = true;
+                this.dragStartX = e.clientX || e.touches[0].clientX;
+            },
+            onDragPan(e) {
+                if (!this.isDraggingPan) return;
+                const clientX = e.clientX || e.touches[0].clientX;
+                const deltaX = clientX - this.dragStartX;
+                this.fieldTripPanDeg += deltaX * 0.5;
+                this.dragStartX = clientX;
+                
+                // Synchronize panning angle over DB state
+                this.projectorState.field_trip_pan = this.fieldTripPanDeg;
+                this.throttledSyncPointer();
+            },
+            stopDragPan() {
+                this.isDraggingPan = false;
+            },
+            trackFieldTripPan(e) {
+                // Tracking pan gestures on touch controller
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                this.fieldTripPanDeg = Math.round((clientX / window.innerWidth) * -500);
+                this.projectorState.field_trip_pan = this.fieldTripPanDeg;
+                this.throttledSyncPointer();
+            },
+
+            // Voice Narration recording directly inside teacher phone
+            async toggleRecording() {
+                if (this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.showNotify('دەنگەکە بە سەرکەوتوویی تۆمار کرا', 'success');
+                } else {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        this.mediaRecorder = new MediaRecorder(stream);
+                        this.audioChunks = [];
+                        
+                        this.mediaRecorder.ondataavailable = e => {
+                            this.audioChunks.push(e.data);
+                        };
+
+                        this.mediaRecorder.onstop = () => {
+                            const blob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                            this.recordedAudioUrl = URL.createObjectURL(blob);
+                        };
+
+                        this.mediaRecorder.start();
+                        this.isRecording = true;
+                        this.showNotify('دەستیپێکرد بە تۆمارکردنی دەنگ...', 'info');
+                    } catch(e) {
+                        this.showNotify('دەسەڵاتی مایکرۆفۆن ڕەتکرایەوە', 'error');
+                    }
+                }
+            },
+            playRecordedAudio() {
+                if (this.recordedAudioUrl) {
+                    const audio = new Audio(this.recordedAudioUrl);
+                    audio.play();
+                }
+            },
+
+            // TTS voice translation using native Synthesis or Gemini TTS endpoints
+            triggerVoiceNarration() {
+                const textToRead = this.projectorState.current_view === 'presentation' 
+                    ? this.slidesList[this.projectorState.current_slide].body 
+                    : (this.activeQuestion ? this.activeQuestion.question_text : '');
+
+                if (!textToRead) return;
+
+                // Client-side instant Web Speech Synthesis fallback for production speed
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(textToRead);
+                    utterance.lang = this.narrationLang === 'ku' ? 'ku-Arab' : 'en-US';
+                    window.speechSynthesis.speak(utterance);
+                    this.showNotify('دەستیپێکرد بە خوێندنەوەی بڵند...', 'success');
+                } else {
+                    this.showNotify('پاڵپشتی خوێندنەوە لەم گەڕۆکەدا بوونی نییە', 'warning');
+                }
+            },
+
+            // Laser Touch Trackpad Methods
+            trackLaserMove(e) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                const percentX = Math.round(((clientX - rect.left) / rect.width) * 100);
+                const percentY = Math.round(((clientY - rect.top) / rect.height) * 100);
+
+                this.localLaserX = Math.max(0, Math.min(100, percentX));
+                this.localLaserY = Math.max(0, Math.min(100, percentY));
+
+                // Instantly sync to the projector state
+                this.projectorState.laser_x = this.localLaserX;
+                this.projectorState.laser_y = this.localLaserY;
+                this.projectorState.laser_active = true;
+
+                this.throttledSyncPointer();
+            },
+            laserOn() {
+                this.projectorState.laser_active = true;
+                this.syncControllerToProjector();
+            },
+            laserOff() {
+                this.projectorState.laser_active = false;
+                this.syncControllerToProjector();
+            },
+            throttledSyncPointer() {
+                if (!this.pointerSyncTimeout) {
+                    this.pointerSyncTimeout = setTimeout(() => {
+                        this.syncControllerToProjector();
+                        this.pointerSyncTimeout = null;
+                    }, 50);
+                }
+            },
+
+            // Timeline Navigation Switcher
+            jumpToTimelineItem(index) {
+                this.activeTimelineStepIndex = index;
+                const step = this.customTimeline[index];
+                
+                if (step.type === 'Welcome') {
+                    this.updateProjectorMode('welcome');
+                } else if (step.type === 'PowerPoint') {
+                    this.updateProjectorMode('presentation');
+                } else if (step.type === 'Quiz') {
+                    this.updateProjectorMode('question');
+                } else if (step.type === 'PDF') {
+                    this.updateProjectorMode('presentation', { current_slide: 1 });
+                } else if (step.type === 'Virtual Trip') {
+                    this.updateProjectorMode('destination');
+                } else if (step.type === 'Leaderboard') {
+                    this.updateProjectorMode('leaderboard');
+                }
+                this.showNotify(`گوێزرایەوە بۆ قۆناغی: ${step.title}`, 'info');
+            },
+
+            // Interactive 3D Three.js Immersive Environments (Built-in WebGL Graphics loop)
+            initThreeJSAmbient() {
+                const canvas = document.getElementById('bg-3d-canvas');
+                if (!canvas) return;
+
+                // Setup Scene, Camera, Renderer
+                this.threeScene = new THREE.Scene();
+                this.threeCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.threeRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+                this.threeRenderer.setSize(window.innerWidth, window.innerHeight);
+                this.threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+                // Add Stars/Nebula Particles
+                const particleCount = 1500;
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+
+                for (let i = 0; i < particleCount * 3; i++) {
+                    positions[i] = (Math.random() - 0.5) * 10;
+                    colors[i] = Math.random();
+                }
+
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                const material = new THREE.PointsMaterial({
+                    size: 0.04,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.8
+                });
+
+                this.threeParticles = new THREE.Points(geometry, material);
+                this.threeScene.add(this.threeParticles);
+
+                this.threeCamera.position.z = 3;
+
+                // Animation loop
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    if (this.threeParticles) {
+                        this.threeParticles.rotation.y += 0.001;
+                        this.threeParticles.rotation.x += 0.0005;
+                    }
+                    this.threeRenderer.render(this.threeScene, this.threeCamera);
+                };
+
+                animate();
+
+                // Responsive Window resizing
+                window.addEventListener('resize', () => {
+                    if (this.threeCamera && this.threeRenderer) {
+                        this.threeCamera.aspect = window.innerWidth / window.innerHeight;
+                        this.threeCamera.updateProjectionMatrix();
+                        this.threeRenderer.setSize(window.innerWidth, window.innerHeight);
+                    }
+                });
+            },
+            updateThreeJSTheme(theme) {
+                if (!this.threeParticles) return;
+                const colors = this.threeParticles.geometry.attributes.color.array;
+                
+                // Dynamically modify color maps to adapt to selected 3D Ambient Environments
+                for (let i = 0; i < colors.length; i += 3) {
+                    if (theme === 'ocean') {
+                        // Cyan/Blue palettes
+                        colors[i] = 0.0;
+                        colors[i+1] = Math.random() * 0.5 + 0.5;
+                        colors[i+2] = Math.random() * 0.8 + 0.2;
+                    } else if (theme === 'forest') {
+                        // Green/Gold palettes
+                        colors[i] = Math.random() * 0.4;
+                        colors[i+1] = Math.random() * 0.7 + 0.3;
+                        colors[i+2] = 0.1;
+                    } else if (theme === 'future') {
+                        // Cyberpunk Pink/Purple/Neon
+                        colors[i] = Math.random() * 0.8 + 0.2;
+                        colors[i+1] = 0.0;
+                        colors[i+2] = Math.random() * 0.9 + 0.1;
+                    } else {
+                        // Cosmic classic white stars
+                        colors[i] = Math.random();
+                        colors[i+1] = Math.random();
+                        colors[i+2] = Math.random();
+                    }
+                }
+                this.threeParticles.geometry.attributes.color.needsUpdate = true;
+            },
+
+            // Competition Flow
+            async resolveSessionCode(code) {
+                if (!isConfigured) return 'mock_comp_id';
+                const { data } = await supabaseClient.from('competitions').select('id').eq('session_code', code.toUpperCase()).eq('status', 'waiting').single();
+                return data ? data.id : null;
+            },
+            async startCompetition(journey) {
+                this.isLoading = true;
+                this.activeSessionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                this.joinUrlDisplay = `${window.location.origin}${window.location.pathname}?view=join&session=${this.activeSessionCode}`;
+                
+                if (isConfigured) {
+                    const { data: comp, error } = await supabaseClient.from('competitions').insert({ journey_id: journey.id, teacher_id: this.userProfile.id, session_code: this.activeSessionCode, status: 'waiting' }).select().single();
+                    if(comp && !error) {
+                        this.activeSessionId = comp.id;
+                        await supabaseClient.from('projector_state').insert({ competition_id: comp.id, current_view: 'welcome' });
+                        
+                        const projectorUrl = `${window.location.origin}${window.location.pathname}?view=projector&session=${this.activeSessionCode}`;
+                        window.open(projectorUrl, '_blank', 'noopener,noreferrer');
+                        
+                        this.updateUrlParam('session', this.activeSessionCode);
+                        this.view = 'control';
+                        this.setupRealtimeSync('control', comp.id);
+                    }
+                } else {
+                    // Bypass with simulated interactive modes
+                    const projectorUrl = `${window.location.origin}${window.location.pathname}?view=projector&session=${this.activeSessionCode}`;
+                    window.open(projectorUrl, '_blank', 'noopener,noreferrer');
+                    
+                    this.updateUrlParam('session', this.activeSessionCode);
+                    this.view = 'control';
+                }
+                this.isLoading = false;
+            },
+            async endSession() {
+                this.view = 'teacher-reports';
+                this.activeSessionCode = '';
+                this.showNotify('دانیشتنی وانەکە بە سەرکەوتوویی کۆتایی پێهات', 'success');
+            },
+
+            // Synchronizing entire visual projector state
+            async updateProjectorMode(viewType, extraOptions = {}) {
+                this.projectorState.current_view = viewType;
+                Object.assign(this.projectorState, extraOptions);
+                this.syncControllerToProjector();
+            },
+            async syncControllerToProjector() {
+                if (isConfigured && this.activeSessionId) {
+                    await supabaseClient.from('projector_state').update({
+                        current_view: this.projectorState.current_view,
+                        current_slide: this.projectorState.current_slide,
+                        active_theme: this.projectorState.active_theme,
+                        transition_effect: this.projectorState.transition_effect,
+                        laser_x: this.projectorState.laser_x,
+                        laser_y: this.projectorState.laser_y,
+                        laser_active: this.projectorState.laser_active,
+                        blank_screen: this.projectorState.blank_screen,
+                        celebration_mode: this.projectorState.celebration_mode,
+                        journey_style: this.activeJourneyStyle,
+                        field_trip_pan: this.fieldTripPanDeg,
+                        updated_at: new Date()
+                    }).eq('competition_id', this.activeSessionId);
+                } else {
+                    // Local state broadcast sync via localstorage for offline standalone execution (Demo Mode compatibility)
+                    localStorage.setItem('mock_projector_sync', JSON.stringify(this.projectorState));
+                }
+            },
+
+            // Realtime Sync Engine
+            setupRealtimeSync(role, sessionId) {
+                if(!isConfigured) {
+                    // Run a 500ms intervals fallback loop for Offline Demonstration
+                    setInterval(() => {
+                        const localSync = localStorage.getItem('mock_projector_sync');
+                        if (localSync) {
+                            this.projectorState = JSON.parse(localSync);
+                        }
+                    }, 500);
+                    return;
+                }
+                
+                this.realtimeChannel = supabaseClient.channel(`room_${sessionId}`);
+
+                // Projector State Sync
+                this.realtimeChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'projector_state', filter: `competition_id=eq.${sessionId}` }, async payload => {
+                    const state = payload.new || payload.old;
+                    this.projectorState = state;
+                });
+
+                this.realtimeChannel.subscribe();
+            },
+
+            enterFullScreen() {
+                const el = document.documentElement;
+                if (el.requestFullscreen) el.requestFullscreen().then(() => this.isFullscreen = true).catch(e => console.log(e));
+            },
+            generateRealQR(elementId) {
+                const el = document.getElementById(elementId);
+                if(!el) return;
+                el.innerHTML = '';
+                new QRCode(el, { text: this.joinUrlDisplay, width: 350, height: 350, colorDark: "#0F172A", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+            },
+            renderChart() {
+                const ctx = document.getElementById('bloomChart');
+                if(!ctx) return;
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: ['بیرکەوتنەوە', 'تێگەیشتن', 'جێبەجێکردن', 'شیکردنەوە', 'هەڵسەنگاندن', 'دروستکردن'], datasets: [{ label: 'ڕێژەی ڕاست (%)', data: [95, 88, 70, 35, 60, 45], backgroundColor: ['#3B82F6', '#3B82F6', '#3B82F6', '#EF4444', '#3B82F6', '#3B82F6'], borderRadius: 12 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } }
+                });
+            }
+        }
+    });
+
+    app.mount('#app');
 </script>
+
 </body>
 </html>
