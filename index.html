@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Three.js for Immersive 3D Background Themes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 
@@ -286,7 +287,7 @@
     </div>
 
     <!-- VIEW: Teacher Views -->
-    <div v-if="view.startsWith('teacher-') && isConfigured" class="flex flex-col h-full bg-slate-50 dark:bg-slate-900 pb-safe relative">
+    <div v-if="view.startsWith('teacher-')" class="flex flex-col h-full bg-slate-50 dark:bg-slate-900 pb-safe relative">
         <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white p-4 shadow-lg flex justify-between items-center z-20">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center font-black text-xl border-2 border-white/40 shadow-inner">{{ (userProfile?.full_name || 'م').charAt(0) }}</div>
@@ -339,6 +340,23 @@
                         <input v-model="newLessonTitle" type="text" placeholder="ناوی وانە - بۆ نموونە: کۆمەڵەی خۆر" class="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-blue-500 font-bold text-sm">
                         <input v-model="newLessonDesc" type="text" placeholder="کورته باس (ئارەزوومەندانە)" class="w-full p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:border-blue-400 text-sm">
                         
+                        <!-- NEW: PPT Upload Area -->
+                        <div class="bg-amber-50 dark:bg-amber-900/20 border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-xl p-4 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-amber-800 dark:text-amber-200"><i class="fa-solid fa-file-powerpoint me-1"></i> پاوەرپۆینت / وێنە باربکە</span>
+                                <span class="text-[10px] bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-100 px-2 py-1 rounded-full font-bold">{{ slidesList.length }} سلاید</span>
+                            </div>
+                            <label class="w-full flex flex-col items-center justify-center py-3 bg-white dark:bg-slate-800 border-2 border-amber-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-blue-400 transition">
+                                <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-500 mb-1"></i>
+                                <span class="text-xs font-bold text-slate-600 dark:text-slate-300">کرتە بکە بۆ هەڵبژاردنی PPT, PPTX, PDF, JPG</span>
+                                <input type="file" class="hidden" accept=".ppt,.pptx,.pdf,.jpg,.jpeg,.png,.webp" multiple @change="handlePresentationUpload">
+                            </label>
+                            <p class="text-[10px] text-gray-500">پشتیوانی دەکات لە .pptx (خوێندنەوەی دەق) + وێنەکان وەک سلاید</p>
+                            <div v-if="slidesList.length>0" class="max-h-24 overflow-y-auto space-y-1">
+                                <div v-for="(s,i) in slidesList.slice(-5)" :key="i" class="text-[11px] bg-white dark:bg-slate-700 p-2 rounded flex justify-between"><span class="truncate font-bold">{{ i+1 }}. {{ s.title }}</span><span class="text-gray-400">✓</span></div>
+                            </div>
+                        </div>
+
                         <button @click="startQuickLesson" class="w-full touch-btn bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-lg font-black shadow-xl rounded-2xl py-4 tracking-wide">
                             <i class="fa-solid fa-rocket me-2"></i> دەستپێکردنی وانە - START LESSON
                         </button>
@@ -419,7 +437,17 @@
                 <div v-if="studioTab === 'timeline'" class="surface-card p-6 rounded-[2rem] border shadow-xl space-y-6">
                     <div class="flex justify-between items-center border-b pb-4">
                         <div>
-                            <h3 class="font-black text-xl text-blue-600">هێڵی کاتیی وانە کارلێکەرەکان</h3>
+                            <div class="flex flex-col gap-3 w-full">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-black text-xl text-blue-600">هێڵی کاتیی وانە کارلێکەرەکان</h3>
+                                <label class="bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-black cursor-pointer hover:bg-blue-500"><i class="fa-solid fa-upload me-1"></i> بارکردنی PPT
+                                    <input type="file" class="hidden" accept=".ppt,.pptx,.pdf,.jpg,.jpeg,.png" multiple @change="handlePresentationUpload">
+                                </label>
+                            </div>
+                            <div class="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 p-3 rounded-xl text-xs">
+                                <span class="font-bold">تێبینی:</span> دەتوانیت ڕاستەوخۆ پاوەرپۆینت باربکەیت، سیستەم دەقەکەی دەخوێنێتەوە و دەیکاتە سلاید. وێنەکانیش وەک سلاید زیاد دەبن.
+                            </div>
+                        </div>
                             <p class="text-xs text-gray-400 mt-1 font-bold">ڕیزبەندی وانەوتنەوە و پێشبڕکێکەت بە ئارەزووی خۆت دەستکاری بکە</p>
                         </div>
                     </div>
@@ -677,7 +705,7 @@
     </div>
 
     <!-- VIEW: Student Join -->
-    <div v-if="view === 'join' && isConfigured" class="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-900 relative">
+    <div v-if="view === 'join'" class="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-900 relative">
         <div class="p-6 flex flex-col h-full justify-center space-y-8 max-w-md mx-auto w-full animate-fade-in">
             <div class="text-center">
                 <div class="text-6xl mb-4 animate-bounce">🚀</div>
@@ -712,7 +740,7 @@
     </div>
 
     <!-- VIEW: Student Play -->
-    <div v-if="view === 'play' && isConfigured" class="flex flex-col h-full bg-slate-900 text-white relative">
+    <div v-if="view === 'play'" class="flex flex-col h-full bg-slate-900 text-white relative">
         <div class="bg-slate-800 p-4 flex justify-between items-center border-b-2 border-slate-700 shadow-lg z-10">
             <div class="flex items-center space-x-4 rtl:space-x-reverse">
                 <div class="w-14 h-14 bg-slate-700 rounded-full flex items-center justify-center text-4xl border-2 border-slate-600 shadow-inner">{{ studentForm.avatar }}</div>
@@ -785,7 +813,7 @@
     </div>
 
     <!-- VIEW: Projector (Immersive 3D Atmosphere + Presentation Slide view) -->
-    <div v-if="view === 'projector' && isConfigured" class="w-full h-full bg-black text-white flex flex-col overflow-hidden relative font-sans select-none">
+    <div v-if="view === 'projector'" class="w-full h-full bg-black text-white flex flex-col overflow-hidden relative font-sans select-none">
         
         <!-- Full Screen Lock Overlay -->
         <div v-if="!isFullscreen" class="absolute inset-0 z-[200] bg-slate-900 flex flex-col items-center justify-center p-8 text-center">
@@ -1182,6 +1210,7 @@
                     this.updateThreeJSTheme(newTheme);
                 }
             },
+            slidesList(newVal) { this.projectorState.total_slides = newVal.length; try{localStorage.setItem('slidesList', JSON.stringify(newVal));}catch(e){} },
             'projectorState.field_trip_pan'(newVal) {
                 if (this.view === 'projector') {
                     this.fieldTripPanDeg = newVal;
@@ -1217,6 +1246,7 @@
                     explanation: "زەوی سێیەمین نزیکترین هەسارەیە لە خۆرەوە کە ناوچەی مامناوەندی گونجاوی بۆ ژیان دروست دەکات."
                 };
 
+                this.projectorState.total_slides = this.slidesList.length;
                 this.activeDestination = {
                     title: "ڕێڕەوی گەردوونناسی نیشتمانی",
                     interesting_fact: "گەلی تیشکی گەردوون بە درێژایی ملیۆنان ساڵ بە ئاسمانی وێستگەکەدا تێپەڕ دەبێت.",
@@ -1386,6 +1416,189 @@
                 if(!error) teacher.is_active = !teacher.is_active;
             },
 
+            async fetchTeacherData() {
+                try {
+                    if (isConfigured && supabaseClient) {
+                        const { data } = await supabaseClient.from('journeys').select('*').limit(20);
+                        if (data && data.length > 0) {
+                            this.teacherData.journeys = [...data, ...this.teacherData.journeys];
+                        }
+                    }
+                } catch(e) { console.log('fetchTeacherData supabase fallback', e); }
+                try {
+                    const saved = localStorage.getItem('teacher_journeys');
+                    if (saved) {
+                        const arr = JSON.parse(saved);
+                        if (Array.isArray(arr) && arr.length > 0) {
+                            // Merge without duplicates
+                            const existingIds = new Set(this.teacherData.journeys.map(j=>j.id));
+                            const newOnes = arr.filter(j=>!existingIds.has(j.id));
+                            this.teacherData.journeys = [...newOnes, ...this.teacherData.journeys];
+                        }
+                    }
+                    const savedSlides = localStorage.getItem('slidesList');
+                    if (savedSlides) {
+                        const slides = JSON.parse(savedSlides);
+                        if (Array.isArray(slides) && slides.length > 0) {
+                            this.slidesList = slides;
+                            this.projectorState.total_slides = slides.length;
+                        }
+                    }
+                } catch(e) {}
+            },
+            startQuickLesson() {
+                if (!this.newLessonTitle || this.newLessonTitle.trim().length < 2) {
+                    this.showNotify('تکایە ناوی وانە بنووسە', 'warning');
+                    return;
+                }
+                const journey = {
+                    id: 'quick_' + Date.now(),
+                    title: this.newLessonTitle.trim(),
+                    description: this.newLessonDesc.trim() || 'وانەی نوێ - ' + this.getJourneyStyleName(this.activeJourneyStyle),
+                    journey_style: this.activeJourneyStyle,
+                    vehicle_type: this.activeJourneyStyle,
+                    timeline: JSON.parse(JSON.stringify(this.customTimeline)),
+                    created_at: new Date().toISOString()
+                };
+                this.teacherData.journeys.unshift(journey);
+                try { localStorage.setItem('teacher_journeys', JSON.stringify(this.teacherData.journeys)); } catch(e){}
+                const title = this.newLessonTitle;
+                this.newLessonTitle = '';
+                this.newLessonDesc = '';
+                this.showNotify('وانە دروستکرا: ' + title + ' - دەستپێدەکات...', 'success');
+                setTimeout(() => { this.startCompetition(journey); }, 600);
+            },
+            handlePresentationUpload(event) {
+                const files = event.target.files;
+                if (!files || !files.length) return;
+                this.isLoading = true;
+                const newSlides = [];
+                let processed = 0;
+                const total = files.length;
+                const finishOne = () => {
+                    processed++;
+                    if (processed === total) {
+                        if (newSlides.length > 0) {
+                            this.slidesList = [...this.slidesList, ...newSlides];
+                            this.projectorState.total_slides = this.slidesList.length;
+                            try { localStorage.setItem('slidesList', JSON.stringify(this.slidesList)); } catch(e){}
+                            this.showNotify(newSlides.length + ' سلاید زیادکرا!', 'success');
+                        }
+                        this.isLoading = false;
+                    }
+                };
+                Array.from(files).forEach(file => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (['jpg','jpeg','png','webp','gif','bmp'].includes(ext)) {
+                        const url = URL.createObjectURL(file);
+                        newSlides.push({ title: file.name.replace(/\.[^/.]+$/, ''), body: 'وێنەی وانە: ' + file.name, image: url });
+                        finishOne();
+                    } else if (ext === 'pptx') {
+                        const reader = new FileReader();
+                        reader.onload = async (e) => {
+                            try {
+                                const zip = await JSZip.loadAsync(e.target.result);
+                                const slideFiles = Object.keys(zip.files).filter(k => k.startsWith('ppt/slides/slide') && k.endsWith('.xml')).sort((a,b)=>{
+                                    const na = parseInt(a.match(/slide(\d+)\.xml/)[1]||0);
+                                    const nb = parseInt(b.match(/slide(\d+)\.xml/)[1]||0);
+                                    return na-nb;
+                                });
+                                for (const slidePath of slideFiles) {
+                                    const content = await zip.files[slidePath].async('string');
+                                    const textMatches = [...content.matchAll(/<a:t[^>]*>([^<]+)<\/a:t>/g)].map(m=>m[1].trim()).filter(t=>t.length>1);
+                                    const cleanText = textMatches.join(' ').trim();
+                                    if (cleanText) {
+                                        const sentences = cleanText.split(/\n|\. /);
+                                        newSlides.push({
+                                            title: (sentences[0]||'سلاید').substring(0,80),
+                                            body: sentences.slice(1).join('. ').substring(0,300) || cleanText.substring(0,250),
+                                            image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600'
+                                        });
+                                    }
+                                }
+                                if (newSlides.length === 0) {
+                                    newSlides.push({ title: file.name, body: 'پاوەرپۆینت بارکرا - ' + slideFiles.length + ' سلاید دۆزرایەوە', image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600' });
+                                }
+                            } catch(err) {
+                                console.error('pptx parse error', err);
+                                newSlides.push({ title: file.name, body: 'پاوەرپۆینت بارکرا (پارسی نەکرا بە تەواوی)', image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600' });
+                            }
+                            finishOne();
+                        };
+                        reader.onerror = () => finishOne();
+                        reader.readAsArrayBuffer(file);
+                    } else if (ext === 'pdf') {
+                        newSlides.push({ title: file.name, body: 'PDF بارکرا: ' + file.name, image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600' });
+                        finishOne();
+                    } else {
+                        newSlides.push({ title: file.name, body: 'فایل بارکرا: ' + file.name, image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600' });
+                        finishOne();
+                    }
+                });
+                event.target.value = '';
+            },
+            async joinSession() {
+                if (!this.studentForm.code || !this.studentForm.name) {
+                    this.showNotify('تکایە کۆد و ناو بنووسە', 'warning');
+                    return;
+                }
+                this.isLoading = true;
+                const code = this.studentForm.code.trim().toUpperCase();
+                this.activeSessionCode = code;
+                this.joinUrlDisplay = `${window.location.origin}${window.location.pathname}?view=join&session=${code}`;
+                const newStudent = { id: this.deviceId, name: this.studentForm.name, avatar: this.studentForm.avatar, score: 0, status: 'waiting' };
+                // Load existing
+                try {
+                    const saved = localStorage.getItem('mock_students_' + code);
+                    if (saved) this.liveData.students = JSON.parse(saved);
+                } catch(e){}
+                if (!this.liveData.students.find(s=>s.id===this.deviceId)) {
+                    this.liveData.students.push(newStudent);
+                }
+                try {
+                    localStorage.setItem('mock_students_' + code, JSON.stringify(this.liveData.students));
+                    localStorage.setItem('student_profile_' + code, JSON.stringify(this.studentForm));
+                    localStorage.setItem('mock_projector_sync_code_' + code, JSON.stringify(this.projectorState));
+                } catch(e){}
+                this.view = 'play';
+                this.projectorState.current_view = 'welcome';
+                this.showNotify('بەخێربێیت ' + this.studentForm.name + '!', 'success');
+                this.isLoading = false;
+                this.setupRealtimeSync('student', code);
+            },
+            submitAnswer(index) {
+                if (this.liveData.myStatus === 'answered') return;
+                if (this.timer.timeLeft === 0) {
+                    this.showNotify('کاتی وەڵامدانەوە تەواو بوو', 'warning');
+                    return;
+                }
+                const option = this.activeQuestion.options[index];
+                const isCorrect = option && option.is_correct;
+                this.liveData.myStatus = 'answered';
+                this.liveData.lastAnswerCorrect = isCorrect;
+                if (isCorrect) {
+                    const timeBonus = Math.floor((this.timer.timeLeft / (this.timer.total||30)) * 500);
+                    this.liveData.myScore += 1000 + timeBonus;
+                    this.liveData.badges.push({ name: 'وەڵامی ڕاست', icon: 'fa-solid fa-star' });
+                }
+                const me = this.liveData.students.find(s=>s.id===this.deviceId);
+                if (me) { me.status = 'answered'; me.score = this.liveData.myScore; }
+                try { localStorage.setItem('mock_students_' + this.activeSessionCode, JSON.stringify(this.liveData.students)); } catch(e){}
+                this.showNotify(isCorrect ? 'ڕاستە! +1000 خاڵ' : 'هەڵە بوو، هەوڵی تر بدە', isCorrect ? 'success' : 'error');
+                setTimeout(() => { this.liveData.myStatus = 'waiting'; }, 8000);
+            },
+            useHint() {
+                if (this.liveData.usedHint) return;
+                if (!this.activeQuestion) return;
+                const wrongIndexes = this.activeQuestion.options.map((o,i)=> !o.is_correct ? i : -1).filter(i=>i!==-1);
+                const toEliminate = wrongIndexes.slice(0, Math.max(1, wrongIndexes.length-1));
+                this.liveData.eliminatedOptions = toEliminate;
+                this.liveData.usedHint = true;
+                this.liveData.myScore = Math.max(0, this.liveData.myScore - 200);
+                this.showNotify('یارمەتی بەکارهێنرا -200 خاڵ', 'warning');
+            },
+
+
             // Timeline Builder Methods (Mobile Touch friendly reordering)
             moveTimelineItem(idx, dir) {
                 const targetIdx = idx + dir;
@@ -1460,7 +1673,11 @@
                 let nextSlide = this.projectorState.current_slide + dir;
                 if (nextSlide >= 0 && nextSlide < this.slidesList.length) {
                     this.projectorState.current_slide = nextSlide;
+                    // Always sync, even if local
                     this.syncControllerToProjector();
+                    this.showNotify(`سلاید ${nextSlide + 1} / ${this.slidesList.length}`, 'info');
+                } else {
+                    this.showNotify(nextSlide < 0 ? 'یەکەم سلاید' : 'کۆتا سلاید', 'warning');
                 }
             },
             resetPresentation() {
@@ -1739,31 +1956,117 @@
             },
             async startCompetition(journey) {
                 this.isLoading = true;
-                this.activeSessionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                this.joinUrlDisplay = `${window.location.origin}${window.location.pathname}?view=join&session=${this.activeSessionCode}`;
-                
-                if (isConfigured) {
-                    const { data: comp, error } = await supabaseClient.from('competitions').insert({ journey_id: journey.id, teacher_id: this.userProfile.id, session_code: this.activeSessionCode, status: 'waiting' }).select().single();
-                    if(comp && !error) {
-                        this.activeSessionId = comp.id;
-                        await supabaseClient.from('projector_state').insert({ competition_id: comp.id, current_view: 'welcome' });
-                        
+                try {
+                    this.activeSessionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                    this.projectorState.total_slides = this.slidesList.length || 3;
+                    this.projectorState.current_slide = 0;
+                    this.projectorState.current_view = 'welcome';
+                    this.joinUrlDisplay = `${window.location.origin}${window.location.pathname}?view=join&session=${this.activeSessionCode}`;
+                    
+                    // Generate valid UUIDs for local quick journeys
+                    const isQuickJourney = !journey.id || journey.id.toString().startsWith('quick_') || journey.id.toString().length < 30;
+                    let realJourneyId = null;
+                    
+                    // Try to get real teacher ID from Supabase
+                    let realTeacherId = null;
+                    try {
+                        if (supabaseClient) {
+                            // Try to get first available profile
+                            const { data: profiles } = await supabaseClient.from('profiles').select('id').limit(1);
+                            if (profiles && profiles.length > 0) {
+                                realTeacherId = profiles[0].id;
+                            }
+                            // If journey is quick, try to create a real journey in DB first
+                            if (isQuickJourney) {
+                                const { data: newJourney, error: jError } = await supabaseClient.from('journeys').insert({
+                                    title: journey.title,
+                                    description: journey.description,
+                                    journey_style: journey.journey_style || this.activeJourneyStyle || 'airplane',
+                                    vehicle_type: journey.journey_style || 'plane',
+                                    visibility: 'public',
+                                    timeline: journey.timeline || this.customTimeline
+                                }).select().single();
+                                if (newJourney && !jError) {
+                                    realJourneyId = newJourney.id;
+                                }
+                            } else {
+                                // Check if journey.id is valid UUID format
+                                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                                if (uuidRegex.test(journey.id)) {
+                                    realJourneyId = journey.id;
+                                }
+                            }
+                        }
+                    } catch(e) {
+                        console.log('Could not get real IDs, using fallback', e);
+                    }
+
+                    // Create competition in Supabase if configured
+                    if (isConfigured && supabaseClient) {
+                        try {
+                            const compData = {
+                                session_code: this.activeSessionCode,
+                                status: 'waiting'
+                            };
+                            if (realJourneyId) compData.journey_id = realJourneyId;
+                            if (realTeacherId) compData.teacher_id = realTeacherId;
+                            
+                            const { data: comp, error } = await supabaseClient.from('competitions').insert(compData).select().single();
+                            
+                            if (comp && !error) {
+                                this.activeSessionId = comp.id;
+                                // Create projector state
+                                try {
+                                    await supabaseClient.from('projector_state').insert({ 
+                                        competition_id: comp.id, 
+                                        current_view: 'welcome',
+                                        current_slide: 0,
+                                        total_slides: this.slidesList.length,
+                                        journey_style: journey.journey_style || this.activeJourneyStyle || 'airplane'
+                                    });
+                                } catch(psError) {
+                                    console.log('Projector state insert error (may already exist):', psError);
+                                }
+                                
+                                const projectorUrl = `${window.location.origin}${window.location.pathname}?view=projector&session=${this.activeSessionCode}`;
+                                window.open(projectorUrl, '_blank', 'noopener,noreferrer');
+                                
+                                this.updateUrlParam('session', this.activeSessionCode);
+                                this.view = 'control';
+                                this.setupRealtimeSync('control', comp.id);
+                                this.showNotify('وانە دەستپێکرا! کۆد: ' + this.activeSessionCode, 'success');
+                            } else {
+                                throw new Error(error?.message || 'Failed to create competition');
+                            }
+                        } catch(supError) {
+                            console.error('Supabase competition error:', supError);
+                            // Fallback to local mode even if Supabase fails
+                            this.showNotify('Supabase error, using local mode: ' + supError.message, 'warning');
+                            const projectorUrl = `${window.location.origin}${window.location.pathname}?view=projector&session=${this.activeSessionCode}`;
+                            window.open(projectorUrl, '_blank', 'noopener,noreferrer');
+                            this.updateUrlParam('session', this.activeSessionCode);
+                            this.view = 'control';
+                            // Setup local sync
+                            this.activeSessionId = 'local_' + Date.now();
+                            this.setupRealtimeSync('control', this.activeSessionId);
+                        }
+                    } else {
+                        // Offline mode
                         const projectorUrl = `${window.location.origin}${window.location.pathname}?view=projector&session=${this.activeSessionCode}`;
                         window.open(projectorUrl, '_blank', 'noopener,noreferrer');
-                        
                         this.updateUrlParam('session', this.activeSessionCode);
                         this.view = 'control';
-                        this.setupRealtimeSync('control', comp.id);
+                        this.activeSessionId = 'local_' + Date.now();
+                        this.setupRealtimeSync('control', this.activeSessionId);
                     }
-                } else {
-                    // Bypass with simulated interactive modes
-                    const projectorUrl = `${window.location.origin}${window.location.pathname}?view=projector&session=${this.activeSessionCode}`;
-                    window.open(projectorUrl, '_blank', 'noopener,noreferrer');
-                    
-                    this.updateUrlParam('session', this.activeSessionCode);
+                } catch (err) {
+                    console.error('startCompetition error:', err);
+                    this.showNotify('Error: ' + err.message, 'error');
+                    // Still try to go to control view
                     this.view = 'control';
+                } finally {
+                    this.isLoading = false;
                 }
-                this.isLoading = false;
             },
             async endSession() {
                 this.view = 'teacher-reports';
@@ -1775,27 +2078,33 @@
             async updateProjectorMode(viewType, extraOptions = {}) {
                 this.projectorState.current_view = viewType;
                 Object.assign(this.projectorState, extraOptions);
-                this.syncControllerToProjector();
+                await this.syncControllerToProjector();
+                this.showNotify('گۆڕدرا بۆ: ' + viewType, 'success');
             },
             async syncControllerToProjector() {
-                if (isConfigured && this.activeSessionId) {
-                    await supabaseClient.from('projector_state').update({
-                        current_view: this.projectorState.current_view,
-                        current_slide: this.projectorState.current_slide,
-                        active_theme: this.projectorState.active_theme,
-                        transition_effect: this.projectorState.transition_effect,
-                        laser_x: this.projectorState.laser_x,
-                        laser_y: this.projectorState.laser_y,
-                        laser_active: this.projectorState.laser_active,
-                        blank_screen: this.projectorState.blank_screen,
-                        celebration_mode: this.projectorState.celebration_mode,
-                        journey_style: this.activeJourneyStyle,
-                        field_trip_pan: this.fieldTripPanDeg,
-                        updated_at: new Date()
-                    }).eq('competition_id', this.activeSessionId);
-                } else {
-                    // Local state broadcast sync via localstorage for offline standalone execution (Demo Mode compatibility)
-                    localStorage.setItem('mock_projector_sync', JSON.stringify(this.projectorState));
+                // Always save to localStorage as backup
+                localStorage.setItem('mock_projector_sync', JSON.stringify(this.projectorState));
+                localStorage.setItem('mock_projector_sync_code_' + this.activeSessionCode, JSON.stringify(this.projectorState));
+                
+                if (isConfigured && supabaseClient && this.activeSessionId && !this.activeSessionId.toString().startsWith('local_')) {
+                    try {
+                        await supabaseClient.from('projector_state').update({
+                            current_view: this.projectorState.current_view,
+                            current_slide: this.projectorState.current_slide,
+                            active_theme: this.projectorState.active_theme,
+                            transition_effect: this.projectorState.transition_effect,
+                            laser_x: this.projectorState.laser_x,
+                            laser_y: this.projectorState.laser_y,
+                            laser_active: this.projectorState.laser_active,
+                            blank_screen: this.projectorState.blank_screen,
+                            celebration_mode: this.projectorState.celebration_mode,
+                            journey_style: this.activeJourneyStyle,
+                            field_trip_pan: this.fieldTripPanDeg,
+                            updated_at: new Date()
+                        }).eq('competition_id', this.activeSessionId);
+                    } catch(e) {
+                        console.log('Supabase sync failed, using localStorage fallback', e);
+                    }
                 }
             },
 
