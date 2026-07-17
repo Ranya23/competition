@@ -1,0 +1,2260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Learning Journeys — Test Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,560;9..144,680&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   Expedition / field-journal theme — deep pine + tarnished gold.
+   Fraunces for display (place names, big numbers), Space Grotesk
+   for UI text, JetBrains Mono for instrument readouts (timer,
+   coordinates, counters) — the "gauges" of the app.
+   ============================================================ */
+:root{
+  --pine-950:#0a1e17;
+  --pine-900:#0f2a20;
+  --pine-800:#16382a;
+  --pine-700:#1f4634;
+  --pine-600:#2b5a44;
+  --pine-500:#3a715a;
+  --gold-300:#e9cd82;
+  --gold-500:#c9a24b;
+  --gold-600:#a8823a;
+  --parchment:#efe8d6;
+  --parchment-dim:#cfc6ab;
+  --ink:#14251c;
+  --rust:#b4553f;
+  --rust-300:#dc9682;
+  --moss:#6f9b6e;
+  --moss-300:#aecfab;
+
+  --font-display:'Fraunces', serif;
+  --font-body:'Space Grotesk', sans-serif;
+  --font-mono:'JetBrains Mono', monospace;
+
+  --radius-sm:6px;
+  --radius-md:12px;
+  --radius-lg:20px;
+  --shadow-panel:0 12px 30px -14px rgba(0,0,0,0.55);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  background:var(--pine-950);
+  color:var(--parchment);
+  font-family:var(--font-body);
+  -webkit-font-smoothing:antialiased;
+  min-height:100%;
+}
+h1,h2,h3,h4{ font-family:var(--font-display); font-weight:560; margin:0; letter-spacing:-0.01em; }
+p{ margin:0; }
+button{ font-family:var(--font-body); cursor:pointer; }
+a{ color:var(--gold-300); }
+::selection{ background:var(--gold-500); color:var(--ink); }
+
+/* Topographic contour texture — tiled SVG, low-opacity gold wobble lines */
+.contour-bg{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  opacity:0.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='140' viewBox='0 0 420 140'%3E%3Cg fill='none' stroke='%23c9a24b' stroke-width='1'%3E%3Cpath d='M-10 20 C 40 0, 80 40, 130 20 S 220 0, 270 20 S 360 40, 410 20' /%3E%3Cpath d='M-10 55 C 40 35, 80 75, 130 55 S 220 35, 270 55 S 360 75, 410 55' opacity='0.7'/%3E%3Cpath d='M-10 90 C 40 70, 80 110, 130 90 S 220 70, 270 90 S 360 110, 410 90' opacity='0.5'/%3E%3Cpath d='M-10 125 C 40 105, 80 145, 130 125 S 220 105, 270 125 S 360 145, 410 125' opacity='0.35'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat:repeat;
+  mix-blend-mode:screen;
+}
+
+/* Mode switcher — TEST-ONLY convenience, not part of the shipped app.
+   In production these three views live at separate URLs. */
+.mode-switcher{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; gap:2px;
+  background:var(--pine-900); border-bottom:1px solid var(--pine-600);
+  padding:6px 10px;
+  font-family:var(--font-mono); font-size:11px;
+}
+.mode-switcher .tag{
+  color:var(--parchment-dim); text-transform:uppercase; letter-spacing:0.08em;
+  margin-right:8px; font-size:10px;
+}
+.mode-switcher button{
+  background:transparent; border:1px solid var(--pine-600); color:var(--parchment-dim);
+  padding:6px 12px; border-radius:999px; font-size:12px; font-family:var(--font-body); font-weight:600;
+  transition:all .15s ease;
+}
+.mode-switcher button.active{ background:var(--gold-500); border-color:var(--gold-500); color:var(--ink); }
+.mode-switcher button:hover:not(.active){ border-color:var(--gold-500); color:var(--gold-300); }
+
+#app{ position:relative; z-index:1; padding-top:38px; min-height:100vh; }
+
+/* ============================================================
+   SHARED PATTERNS
+   ============================================================ */
+.screen{ min-height:calc(100vh - 38px); display:flex; flex-direction:column; }
+.wrap{ max-width:960px; margin:0 auto; width:100%; padding:0 20px; }
+.eyebrow{
+  font-family:var(--font-mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--gold-300); display:flex; align-items:center; gap:8px;
+}
+.eyebrow::before{ content:''; width:14px; height:1px; background:var(--gold-500); display:inline-block; }
+
+.btn{
+  border:1px solid var(--gold-500); background:transparent; color:var(--gold-300);
+  padding:12px 20px; border-radius:999px; font-weight:600; font-size:14px;
+  transition:all .15s ease; letter-spacing:0.01em;
+}
+.btn:hover{ background:rgba(201,162,75,0.12); }
+.btn.primary{ background:var(--gold-500); color:var(--ink); border-color:var(--gold-500); }
+.btn.primary:hover{ background:var(--gold-300); }
+.btn.ghost{ border-color:var(--pine-600); color:var(--parchment-dim); }
+.btn.ghost:hover{ border-color:var(--parchment-dim); color:var(--parchment); background:transparent; }
+.btn:disabled{ opacity:0.35; cursor:not-allowed; }
+.btn.small{ padding:8px 14px; font-size:12px; }
+.btn.danger{ border-color:var(--rust); color:var(--rust-300); }
+
+.card{
+  background:var(--pine-800); border:1px solid var(--pine-600); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-panel);
+}
+
+.field label{
+  display:block; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em;
+  text-transform:uppercase; color:var(--parchment-dim); margin-bottom:6px;
+}
+.field input[type=text], .field input[type=number], .field input[type=url], .field select, .field textarea{
+  width:100%; background:var(--pine-900); border:1px solid var(--pine-600); color:var(--parchment);
+  padding:10px 12px; border-radius:var(--radius-sm); font-family:var(--font-body); font-size:14px;
+}
+.field textarea{ resize:vertical; min-height:64px; }
+.field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--gold-500); outline-offset:1px; }
+.field{ margin-bottom:14px; }
+.field-row{ display:flex; gap:12px; }
+.field-row > .field{ flex:1; }
+
+/* ============================================================
+   TEACHER — SETUP WIZARD
+   ============================================================ */
+.setup-header{ padding:32px 0 20px; }
+.setup-header h1{ font-size:30px; color:var(--parchment); margin-top:8px; }
+.setup-header .sub{ color:var(--parchment-dim); font-size:14px; margin-top:6px; max-width:56ch; }
+
+.step-tabs{ display:flex; gap:4px; margin:22px 0 24px; border-bottom:1px solid var(--pine-600); }
+.step-tabs button{
+  background:transparent; border:none; color:var(--parchment-dim);
+  padding:10px 4px; margin-right:22px; font-size:13px; font-weight:600;
+  border-bottom:2px solid transparent; position:relative; top:1px;
+  font-family:var(--font-mono); letter-spacing:0.04em; text-transform:uppercase;
+}
+.step-tabs button.active{ color:var(--gold-300); border-bottom-color:var(--gold-500); }
+.step-tabs button:disabled{ opacity:0.3; cursor:not-allowed; }
+
+.setup-body{ flex:1; padding-bottom:120px; }
+
+.type-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; }
+.type-card{
+  text-align:left; padding:18px; border-radius:var(--radius-md); border:1px solid var(--pine-600);
+  background:var(--pine-800); color:var(--parchment); transition:all .15s ease;
+}
+.type-card:hover{ border-color:var(--gold-500); transform:translateY(-2px); }
+.type-card.selected{ border-color:var(--gold-500); background:var(--pine-700); box-shadow:0 0 0 1px var(--gold-500) inset; }
+.type-card .glyph{ font-family:var(--font-mono); font-size:11px; color:var(--gold-300); letter-spacing:0.1em; text-transform:uppercase; }
+.type-card h3{ font-size:19px; margin-top:8px; }
+.type-card .route-preview{ margin-top:10px; font-size:12px; color:var(--parchment-dim); line-height:1.5; }
+
+.checkpoint-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
+.checkpoint-row{
+  display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-md);
+  background:var(--pine-800); border:1px solid var(--pine-600);
+}
+.checkpoint-row .order-badge{
+  font-family:var(--font-mono); font-size:12px; color:var(--ink); background:var(--gold-500);
+  width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; font-weight:700;
+}
+.checkpoint-row .cp-main{ flex:1; min-width:0; }
+.checkpoint-row .cp-name{ font-weight:600; font-size:15px; }
+.checkpoint-row .cp-meta{ font-family:var(--font-mono); font-size:11px; color:var(--parchment-dim); margin-top:2px; }
+.checkpoint-row .cp-meta.pending{ color:var(--rust-300); }
+.checkpoint-row .cp-actions{ display:flex; gap:6px; flex-shrink:0; }
+.icon-btn{
+  background:transparent; border:1px solid var(--pine-600); color:var(--parchment-dim);
+  width:30px; height:30px; border-radius:var(--radius-sm); font-size:13px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+}
+.icon-btn:hover{ border-color:var(--gold-500); color:var(--gold-300); }
+
+.add-panel{ padding:18px; margin-bottom:10px; }
+.add-panel .panel-title{ font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--gold-300); margin-bottom:14px; }
+.geo-status{ font-family:var(--font-mono); font-size:12px; margin-top:6px; min-height:16px; }
+.geo-status.ok{ color:var(--moss-300); }
+.geo-status.fail{ color:var(--rust-300); }
+.geo-status.pending{ color:var(--parchment-dim); }
+
+.question-card{
+  padding:14px 16px; border-radius:var(--radius-md); background:var(--pine-800); border:1px solid var(--pine-600);
+  margin-bottom:10px;
+}
+.question-card .q-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.question-card .q-text{ font-weight:600; font-size:15px; flex:1; }
+.question-card .q-topic{
+  font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:0.06em;
+  background:var(--pine-700); color:var(--gold-300); padding:3px 8px; border-radius:999px; white-space:nowrap;
+}
+.question-card .q-opts{ margin-top:8px; font-size:13px; color:var(--parchment-dim); display:flex; flex-wrap:wrap; gap:6px 14px; }
+.question-card .q-opts .correct{ color:var(--moss-300); font-weight:600; }
+.question-card .q-actions{ margin-top:10px; display:flex; gap:6px; }
+
+.opt-input-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.opt-input-row input[type=radio]{ accent-color:var(--gold-500); width:16px; height:16px; flex-shrink:0; }
+.opt-input-row input[type=text]{ flex:1; }
+
+.q-resources{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.resource-chip{
+  display:inline-flex; align-items:center; gap:6px; background:var(--pine-900); border:1px solid var(--pine-600);
+  border-radius:999px; padding:4px 10px 4px 4px; font-size:12px; color:var(--parchment); text-decoration:none;
+}
+.resource-chip:hover{ border-color:var(--gold-500); }
+.resource-chip .res-type{
+  font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em;
+  background:var(--gold-500); color:var(--ink); padding:2px 6px; border-radius:999px; font-weight:700;
+}
+.resource-chip .res-remove{ background:none; border:none; color:var(--parchment-dim); font-size:11px; padding:0 2px; margin-left:2px; }
+.resource-chip .res-remove:hover{ color:var(--rust-300); }
+.resource-add-row{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.resource-add-row select{ background:var(--pine-900); border:1px solid var(--pine-600); color:var(--parchment); border-radius:var(--radius-sm); padding:8px 10px; font-size:13px; }
+.resource-add-row input{ flex:1; min-width:140px; background:var(--pine-900); border:1px solid var(--pine-600); color:var(--parchment); border-radius:var(--radius-sm); padding:8px 10px; font-size:13px; }
+
+.settings-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:520px; }
+.range-row{ display:flex; align-items:center; gap:12px; }
+.range-row input[type=range]{ flex:1; accent-color:var(--gold-500); }
+.range-row .range-val{ font-family:var(--font-mono); font-size:15px; min-width:52px; text-align:right; color:var(--gold-300); }
+
+.sticky-footer{
+  position:fixed; bottom:0; left:0; right:0; background:var(--pine-900); border-top:1px solid var(--pine-600);
+  padding:14px 20px; display:flex; justify-content:space-between; align-items:center; z-index:50;
+}
+.sticky-footer .req-note{ font-family:var(--font-mono); font-size:11px; color:var(--parchment-dim); }
+
+/* ============================================================
+   ALTIMETER DIAL — signature timer element, used across
+   Teacher / Projector / Student. SVG ring with tick marks.
+   ============================================================ */
+.altimeter{ position:relative; display:inline-flex; align-items:center; justify-content:center; }
+.altimeter svg{ transform:rotate(-90deg); display:block; }
+.altimeter .track{ stroke:var(--pine-600); fill:none; }
+.altimeter .sweep{ stroke:var(--gold-500); fill:none; stroke-linecap:round; transition:stroke-dashoffset 0.1s linear; }
+.altimeter .sweep.urgent{ stroke:var(--rust-300); }
+.altimeter .tick{ stroke:var(--pine-500); stroke-width:1.5; }
+.altimeter .readout{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-weight:700; color:var(--parchment);
+}
+
+/* ============================================================
+   TEACHER — LIVE CONTROL
+   ============================================================ */
+.live-shell{ display:grid; grid-template-columns:1fr 300px; gap:22px; padding:24px 20px 40px; max-width:1160px; margin:0 auto; width:100%; align-items:start; }
+@media (max-width:840px){ .live-shell{ grid-template-columns:1fr; } }
+
+.live-progress{ font-family:var(--font-mono); font-size:12px; color:var(--gold-300); letter-spacing:0.06em; text-transform:uppercase; }
+.live-question-panel{ padding:26px; margin-top:12px; }
+.live-question-panel .q-big{ font-family:var(--font-display); font-size:24px; line-height:1.3; margin:14px 0 18px; }
+.live-opts-preview{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+.live-opts-preview div{
+  padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--pine-600); font-size:13px; background:var(--pine-900);
+}
+.live-opts-preview div.was-correct{ border-color:var(--moss); color:var(--moss-300); }
+
+.answered-tally{ display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:13px; color:var(--parchment-dim); margin:14px 0; }
+.answered-tally .dot{ width:8px; height:8px; border-radius:50%; background:var(--pine-600); display:inline-block; }
+.answered-tally .dot.filled{ background:var(--gold-500); }
+
+.result-line{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--pine-700); font-size:13px; }
+.result-line:last-child{ border-bottom:none; }
+.result-line .flag{ width:14px; height:14px; border-radius:2px; flex-shrink:0; }
+.result-line .name{ font-weight:600; width:110px; flex-shrink:0; }
+.result-line .verdict.correct{ color:var(--moss-300); }
+.result-line .verdict.wrong{ color:var(--rust-300); }
+.result-line .verdict.miss{ color:var(--parchment-dim); }
+.result-line .ms{ font-family:var(--font-mono); font-size:11px; color:var(--parchment-dim); margin-left:auto; }
+
+.action-row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+
+.team-monitor{ padding:18px; position:sticky; top:52px; }
+.team-monitor h4{ font-size:13px; text-transform:uppercase; letter-spacing:0.06em; font-family:var(--font-mono); color:var(--gold-300); margin-bottom:14px; }
+.team-mini-row{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.team-mini-row .flag{ width:12px; height:12px; border-radius:2px; flex-shrink:0; }
+.team-mini-row .info{ flex:1; min-width:0; }
+.team-mini-row .tname{ font-size:12.5px; font-weight:600; }
+.team-mini-row .tcheckpoint{ font-family:var(--font-mono); font-size:10.5px; color:var(--parchment-dim); }
+.progress-track{ height:4px; background:var(--pine-600); border-radius:99px; margin-top:4px; overflow:hidden; }
+.progress-track > div{ height:100%; background:var(--gold-500); }
+
+/* ============================================================
+   TRAIL-SIGN ANSWER BUTTONS (student + projector)
+   ============================================================ */
+.trail-signs{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.trail-signs.tf{ grid-template-columns:1fr 1fr; }
+.trail-sign{
+  position:relative; border:none; text-align:left; padding:18px 18px 16px 46px; border-radius:10px 10px 4px 4px;
+  background:var(--pine-800); border:1.5px solid var(--pine-600); color:var(--parchment); font-size:15px; font-weight:600;
+  min-height:64px; display:flex; align-items:center; transition:all .12s ease;
+}
+.trail-sign::before{
+  content:attr(data-letter); position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  font-family:var(--font-mono); font-size:13px; color:var(--gold-300); border:1px solid var(--pine-500);
+  width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+}
+.trail-sign::after{
+  content:''; position:absolute; top:-9px; left:22px; width:2px; height:10px; background:var(--pine-500);
+}
+.trail-sign:hover:not(:disabled){ border-color:var(--gold-500); transform:translateY(-2px); }
+.trail-sign:disabled{ opacity:0.55; }
+.trail-sign.picked{ border-color:var(--gold-500); background:var(--pine-700); box-shadow:0 0 0 1px var(--gold-500) inset; }
+.trail-sign.reveal-correct{ border-color:var(--moss); box-shadow:0 0 0 1px var(--moss) inset; }
+.trail-sign.reveal-wrong{ border-color:var(--rust); }
+
+/* ============================================================
+   PROJECTOR
+   ============================================================ */
+.projector-screen{ min-height:calc(100vh - 38px); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 30px; }
+.projector-waiting h1{ font-size:52px; color:var(--parchment); }
+.projector-waiting .type-name{ color:var(--gold-300); margin-top:10px; font-size:18px; font-family:var(--font-mono); letter-spacing:0.08em; text-transform:uppercase; }
+.projector-waiting .pulse{ margin-top:26px; width:10px; height:10px; border-radius:50%; background:var(--gold-500); animation:pulse 1.8s ease-in-out infinite; }
+@keyframes pulse{ 0%,100%{ opacity:0.25; transform:scale(0.9); } 50%{ opacity:1; transform:scale(1.15); } }
+
+.projector-question{ width:100%; max-width:920px; }
+.projector-question .p-topic{ font-family:var(--font-mono); font-size:13px; color:var(--gold-300); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:18px; }
+.projector-question .p-qtext{ font-size:42px; line-height:1.25; margin-bottom:34px; }
+.projector-question .altimeter{ margin-bottom:30px; }
+.projector-question .trail-signs{ font-size:20px; }
+.projector-question .trail-sign{ font-size:20px; padding:26px 26px 24px 58px; min-height:80px; }
+.projector-question .p-tally{ margin-top:26px; font-family:var(--font-mono); color:var(--parchment-dim); font-size:14px; }
+
+.projector-stats{ width:100%; max-width:920px; text-align:left; }
+.stat-bar-row{ margin-bottom:16px; }
+.stat-bar-row .sb-top{ display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; }
+.stat-bar-row .sb-track{ height:22px; background:var(--pine-800); border:1px solid var(--pine-600); border-radius:4px; overflow:hidden; }
+.stat-bar-row .sb-fill{ height:100%; background:linear-gradient(90deg,var(--gold-600),var(--gold-300)); }
+
+/* ============================================================
+   MAP AREAS (geo + schematic)
+   ============================================================ */
+.map-wrap{ position:relative; width:100%; height:420px; border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--pine-600); background:var(--pine-900); }
+.map-wrap.projector-map{ height:min(62vh,560px); max-width:1000px; }
+#leaflet-target{ width:100%; height:100%; filter:grayscale(0.55) sepia(0.35) hue-rotate(52deg) saturate(1.4) brightness(0.85) contrast(1.05); }
+.leaflet-container{ background:var(--pine-800) !important; }
+
+.schematic-route{ position:relative; width:100%; height:100%; padding:40px 30px; }
+.schematic-route svg{ width:100%; height:100%; overflow:visible; }
+.schematic-path{ fill:none; stroke:var(--pine-500); stroke-width:2; stroke-dasharray:2 8; stroke-linecap:round; }
+.schem-cp-label{ font-family:var(--font-body); font-size:11px; fill:var(--parchment-dim); }
+.schem-cp-dot{ fill:var(--gold-500); }
+.team-avatar{
+  width:26px; height:26px; border-radius:50% 50% 50% 4px; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--ink); border:2px solid var(--pine-950);
+  box-shadow:0 3px 8px rgba(0,0,0,0.4); transition:left 1.4s cubic-bezier(.4,.1,.3,1), top 1.4s cubic-bezier(.4,.1,.3,1);
+}
+
+/* ============================================================
+   STUDENT VIEW
+   ============================================================ */
+.student-screen{ max-width:480px; margin:0 auto; padding:26px 18px 60px; }
+.student-team-badge{ display:flex; align-items:center; gap:10px; margin-bottom:22px; }
+.student-team-badge .flag{ width:20px; height:20px; border-radius:3px; }
+.student-team-badge .tname{ font-weight:700; font-size:16px; }
+.student-team-badge .checkpoint-now{ font-family:var(--font-mono); font-size:11px; color:var(--parchment-dim); }
+.student-wait{ text-align:center; padding:60px 20px; color:var(--parchment-dim); }
+.student-wait .altimeter{ margin:0 auto 20px; opacity:0.7; }
+.student-qtext{ font-size:21px; line-height:1.35; margin:18px 0 20px; }
+.student-locked{ text-align:center; padding:40px 10px; }
+.student-locked .lockline{ font-family:var(--font-mono); font-size:13px; color:var(--gold-300); margin-top:14px; }
+.student-result{ text-align:center; padding:30px 10px; }
+.student-result .final-cp{ font-size:26px; margin:10px 0; }
+
+/* ============================================================
+   END STATS (teacher)
+   ============================================================ */
+.stats-section{ margin-bottom:32px; }
+.stats-section h3{ font-size:16px; color:var(--gold-300); margin-bottom:14px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.06em; }
+.hardest-callout{ padding:16px 18px; border-left:3px solid var(--rust); background:rgba(180,85,63,0.08); border-radius:var(--radius-sm); font-size:14px; }
+.checkpoint-fact-card{ display:flex; gap:14px; padding:14px; border-radius:var(--radius-md); background:var(--pine-800); border:1px solid var(--pine-600); margin-bottom:10px; }
+.checkpoint-fact-card .photo-ph{
+  width:70px; height:70px; border-radius:var(--radius-sm); background:var(--pine-700); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:10px; color:var(--parchment-dim); text-align:center;
+}
+.checkpoint-fact-card .cf-body{ flex:1; }
+.checkpoint-fact-card .cf-top{ display:flex; justify-content:space-between; align-items:baseline; }
+.checkpoint-fact-card .cf-name{ font-weight:700; }
+.checkpoint-fact-card .cf-pct{ font-family:var(--font-mono); font-size:13px; color:var(--gold-300); }
+.checkpoint-fact-card .cf-fact{ font-size:13px; color:var(--parchment-dim); margin-top:4px; }
+
+.team-report-row{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-md); background:var(--pine-800); border:1px solid var(--pine-600); margin-bottom:8px; }
+.team-report-row .flag{ width:14px; height:14px; border-radius:2px; }
+.team-report-row .trname{ font-weight:600; flex:1; }
+.team-report-row .trscore{ font-family:var(--font-mono); font-size:12px; color:var(--parchment-dim); }
+
+/* Leaflet theming */
+.leaflet-marker-icon{ transition:transform 1.2s ease; }
+.leaflet-tooltip.cp-tooltip{
+  background:var(--pine-800); color:var(--parchment); border:1px solid var(--gold-500);
+  font-family:var(--font-body); font-size:11px; padding:3px 8px; border-radius:4px; box-shadow:none;
+}
+.leaflet-tooltip.cp-tooltip::before{ border-top-color:var(--gold-500); }
+
+/* ============================================================
+   LOBBY (QR join)
+   ============================================================ */
+.lobby-grid{ display:grid; grid-template-columns:260px 1fr; gap:18px; margin-top:20px; }
+@media (max-width:640px){ .lobby-grid{ grid-template-columns:1fr; } }
+.lobby-qr-card{ padding:22px; text-align:center; }
+.lobby-qr-card canvas{ border-radius:var(--radius-sm); background:var(--parchment); }
+.lobby-code{ font-family:var(--font-mono); font-size:22px; letter-spacing:0.12em; color:var(--gold-300); margin-top:14px; font-weight:700; }
+.lobby-link{ font-family:var(--font-mono); font-size:11px; color:var(--parchment-dim); margin-top:6px; word-break:break-all; }
+.lobby-roster-card{ padding:20px; }
+.lobby-roster-card h4{ font-size:13px; text-transform:uppercase; letter-spacing:0.06em; font-family:var(--font-mono); color:var(--gold-300); margin-bottom:14px; }
+
+.projector-waiting .lobby-code, .projector-screen .lobby-code{ font-family:var(--font-mono); color:var(--gold-300); letter-spacing:0.14em; }
+.projector-screen canvas{ background:var(--parchment); border-radius:var(--radius-md); }
+
+/* Registration (join-mode) */
+.join-card{ max-width:400px; margin:60px auto 0; padding:26px; }
+
+/* Feedback banners on student view */
+.feedback-correct{ color:var(--moss-300); font-family:var(--font-mono); font-size:14px; text-align:center; }
+.feedback-wrong{ color:var(--rust-300); font-family:var(--font-mono); font-size:14px; text-align:center; }
+.feedback-review{ text-align:left; max-width:340px; margin:0 auto; }
+.feedback-review .fr-title{ color:var(--rust-300); font-size:14px; margin-bottom:10px; text-align:center; }
+.feedback-review .resource-chip{ display:flex; margin-bottom:8px; }
+
+/* Enhanced per-group report cards */
+.team-report-card{ padding:14px 16px; border-radius:var(--radius-md); background:var(--pine-800); border:1px solid var(--pine-600); margin-bottom:10px; }
+.trc-top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.trc-top .trname{ font-weight:600; }
+.trc-top .trgender{ font-family:var(--font-mono); font-size:10.5px; color:var(--parchment-dim); border:1px solid var(--pine-600); border-radius:999px; padding:2px 8px; }
+.trc-top .trscore{ font-family:var(--font-mono); font-size:12px; color:var(--parchment-dim); margin-left:auto; }
+.trc-insights{ margin-top:10px; display:flex; flex-direction:column; gap:6px; }
+.insight-line{ font-size:13px; }
+.insight-line.good{ color:var(--moss-300); }
+.insight-line.weak{ color:var(--rust-300); }
+.insight-line b{ color:inherit; }
+.insight-resources{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+</style>
+</head>
+<body>
+<div class="contour-bg" aria-hidden="true"></div>
+
+<div class="mode-switcher">
+  <span class="tag">Test harness · view as</span>
+  <button data-action="switch-screen" data-screen="teacher">Teacher</button>
+  <button data-action="switch-screen" data-screen="projector">Projector</button>
+  <button data-action="switch-screen" data-screen="student">Student</button>
+</div>
+
+<main id="app"></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+
+/* ================================================================
+   LEARNING JOURNEYS — TEST BUILD
+   Single-file demo. All three views (Teacher / Projector / Student)
+   share one in-memory state object and re-render on state changes.
+   In production these are three separate routes kept in sync via
+   Supabase Realtime; here the mode-switcher swaps which one is on
+   screen so you can test the full loop solo.
+   ================================================================ */
+
+/* ---------- Presets: starting templates per competition type ---------- */
+const TYPE_PRESETS = {
+  city: {
+    label: 'City Journey',
+    glyph: 'Route',
+    checkpoints: ['Erbil', 'Istanbul', 'Vienna', 'Rome', 'Paris'],
+  },
+  mountain: {
+    label: 'Mountain Climb',
+    glyph: 'Ascent',
+    checkpoints: ['Halgurd', 'Ararat', 'Kilimanjaro', 'Everest'],
+  },
+  river: {
+    label: 'River Journey',
+    glyph: 'Source \u2192 Sea',
+    checkpoints: ['Great Zab (source)', 'Erbil', 'Confluence with Tigris', 'Persian Gulf'],
+  },
+  space: {
+    label: 'Space Journey',
+    glyph: 'Orbit',
+    checkpoints: ['Earth', 'Moon', 'Mars', 'Jupiter', 'Saturn'],
+  },
+  ocean: {
+    label: 'Ocean Depth',
+    glyph: 'Descent',
+    checkpoints: ['Surface', 'Continental Shelf', 'Twilight Zone', 'Deep Sea Trench'],
+  },
+  climate: {
+    label: 'Climate Zones',
+    glyph: 'Biomes',
+    checkpoints: ['Desert', 'Grassland', 'Temperate Forest', 'Rainforest', 'Polar'],
+  },
+};
+
+/* ---------- Fallback coordinates for common demo place names ----------
+   Used only if a live Nominatim lookup fails (offline / rate-limited),
+   so the default templates still work without network access. */
+const PRESET_COORDS = {
+  'erbil': [36.1911, 44.0092],
+  'istanbul': [41.0082, 28.9784],
+  'vienna': [48.2082, 16.3738],
+  'rome': [41.9028, 12.4964],
+  'paris': [48.8566, 2.3522],
+  'halgurd': [36.7333, 44.75],
+  'ararat': [39.7019, 44.2983],
+  'kilimanjaro': [-3.0674, 37.3556],
+  'everest': [27.9881, 86.925],
+  'great zab (source)': [36.85, 44.4],
+  'confluence with tigris': [35.9, 43.2],
+  'persian gulf': [29.5, 50.5],
+};
+
+const TEAM_TEMPLATES = [
+  { id: 'cairn', name: 'Team Cairn', color: '#c9a24b', isHuman: true },
+  { id: 'compass', name: 'Team Compass', color: '#6f9b6e', isHuman: false },
+  { id: 'lantern', name: 'Team Lantern', color: '#b4553f', isHuman: false },
+  { id: 'ridge', name: 'Team Ridge', color: '#8fb3c9', isHuman: false },
+  { id: 'driftwood', name: 'Team Driftwood', color: '#a8823a', isHuman: false },
+  { id: 'ember', name: 'Team Ember', color: '#dc9682', isHuman: false },
+];
+
+const GENDER_OPTIONS = ['Female', 'Male', 'Prefer not to say'];
+const GROUP_COLOR_PALETTE = ['#c9a24b', '#6f9b6e', '#b4553f', '#8fb3c9', '#a8823a', '#dc9682', '#9b6fae', '#6fa0ae', '#ae8f6f', '#7a9a52'];
+function colorForIndex(i) { return GROUP_COLOR_PALETTE[i % GROUP_COLOR_PALETTE.length]; }
+const RESOURCE_TYPES = { pdf: 'PDF', video: 'Video', image: 'Image', link: 'Link' };
+
+/* ================================================================
+   SUPABASE CONFIG
+   Fill these in with your project's URL and anon/publishable key
+   (Project Settings -> API in the Supabase dashboard). Cross-device
+   sync (lobby roster, live state push, answer submission) is fully
+   disabled until both are set to real values.
+   ================================================================ */
+const SUPABASE_URL = 'https://wmhuetfqmlpobbnsqorr.supabase.co/rest/v1/';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtaHVldGZxbWxwb2JibnNxb3JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMzcxNTgsImV4cCI6MjA5OTcxMzE1OH0.f_a247jJYG2edXuAr4kNTqrbo03mbOXLEgCAmHkjgfU';
+
+const sb = (typeof window !== 'undefined' && window.supabase
+  && SUPABASE_URL.indexOf('YOUR-PROJECT-REF') === -1
+  && SUPABASE_ANON_KEY.indexOf('YOUR-ANON-PUBLIC-KEY') === -1)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+/* ---------- State ---------- */
+const state = {
+  screen: 'teacher',
+  phase: 'setup',
+  setupStep: 'type',
+  competitionType: null,
+  checkpoints: [],
+  questions: [],
+  settings: { questionsPerRound: 5, timePerQuestion: 5 },
+  teams: [],
+  questionOrder: [],
+  currentQuestionIndex: -1,
+  questionRevealed: false,
+  timer: { running: false, remaining: 0, total: 0, startedAt: 0, intervalId: null, botTimeouts: [] },
+  answersThisQuestion: {},
+  lastResults: null,
+  projectorMode: 'waiting',
+  useGeoMap: true,
+  leafletMap: null,
+  leafletMarkers: {},
+  replayRunning: false,
+  mapOverridePositions: null,
+
+  /* --- multi-device join / sync (Supabase Realtime) --- */
+  storageAvailable: !!sb,
+  joinMode: false,       // true on a device that loaded via ?join=CODE
+  joinCode: null,
+  participantId: null,   // this device's own id, when joinMode
+  registered: false,      // has this join-mode device submitted name/gender
+  synced: null,           // last public snapshot received (join-mode devices)
+  syncedAt: 0,
+  sessionCode: null,      // set by the teacher device when opening a lobby
+  rosterChannel: null,    // realtime channel: new roster rows (teacher device)
+  answerChannel: null,    // realtime channel: new answer rows (teacher device)
+  stateChannel: null,     // realtime channel: session snapshot pushes (join-mode devices)
+  joinTickId: null,
+};
+
+let cpIdSeq = 1;
+let qIdSeq = 1;
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+function el(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+
+function currentQuestion() {
+  if (state.currentQuestionIndex < 0) return null;
+  const qid = state.questionOrder[state.currentQuestionIndex];
+  return state.questions.find((q) => q.id === qid) || null;
+}
+
+function totalCheckpoints() { return state.checkpoints.length; }
+
+function teamById(id) { return state.teams.find((t) => t.id === id); }
+
+/* ================================================================
+   GEOCODING
+   ================================================================ */
+async function geocodePlace(name) {
+  const key = name.trim().toLowerCase();
+  try {
+    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(name));
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data[0]) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), ok: true };
+      }
+    }
+  } catch (e) {
+    /* network unavailable — fall through to preset */
+  }
+  if (PRESET_COORDS[key]) {
+    return { lat: PRESET_COORDS[key][0], lng: PRESET_COORDS[key][1], ok: true };
+  }
+  return { ok: false };
+}
+
+/* ================================================================
+   SETUP ACTIONS
+   ================================================================ */
+function selectType(typeKey) {
+  state.competitionType = typeKey;
+  state.checkpoints = TYPE_PRESETS[typeKey].checkpoints.map((name) => ({
+    id: 'cp' + cpIdSeq++, name, lat: null, lng: null, geocodeStatus: 'pending', fact: '', source: '',
+  }));
+  state.setupStep = 'checkpoints';
+  renderAll();
+  state.checkpoints.forEach((cp) => geocodeCheckpointById(cp.id));
+}
+
+async function geocodeCheckpointById(cpId) {
+  const cp = state.checkpoints.find((c) => c.id === cpId);
+  if (!cp) return;
+  cp.geocodeStatus = 'loading';
+  renderAll();
+  const result = await geocodePlace(cp.name);
+  if (result.ok) {
+    cp.lat = result.lat; cp.lng = result.lng; cp.geocodeStatus = 'ok';
+  } else {
+    cp.geocodeStatus = 'fail';
+  }
+  renderAll();
+}
+
+function addCheckpoint() {
+  const nameInput = el('new-cp-name');
+  const factInput = el('new-cp-fact');
+  const sourceInput = el('new-cp-source');
+  const name = nameInput.value.trim();
+  if (!name) return;
+  const cp = {
+    id: 'cp' + cpIdSeq++, name, lat: null, lng: null, geocodeStatus: 'pending',
+    fact: factInput ? factInput.value.trim() : '', source: sourceInput ? sourceInput.value.trim() : '',
+  };
+  state.checkpoints.push(cp);
+  nameInput.value = ''; if (factInput) factInput.value = ''; if (sourceInput) sourceInput.value = '';
+  renderAll();
+  geocodeCheckpointById(cp.id);
+}
+
+function removeCheckpoint(cpId) {
+  state.checkpoints = state.checkpoints.filter((c) => c.id !== cpId);
+  renderAll();
+}
+
+function moveCheckpoint(cpId, dir) {
+  const idx = state.checkpoints.findIndex((c) => c.id === cpId);
+  const swapWith = idx + dir;
+  if (idx < 0 || swapWith < 0 || swapWith >= state.checkpoints.length) return;
+  const arr = state.checkpoints;
+  [arr[idx], arr[swapWith]] = [arr[swapWith], arr[idx]];
+  renderAll();
+}
+
+function manualCoordSave(cpId) {
+  const latInput = el('manual-lat-' + cpId);
+  const lngInput = el('manual-lng-' + cpId);
+  const cp = state.checkpoints.find((c) => c.id === cpId);
+  if (!cp || !latInput || !lngInput) return;
+  const lat = parseFloat(latInput.value), lng = parseFloat(lngInput.value);
+  if (!isNaN(lat) && !isNaN(lng)) {
+    cp.lat = lat; cp.lng = lng; cp.geocodeStatus = 'ok';
+    renderAll();
+  }
+}
+
+let pendingQuestionType = 'mcq';
+function addQuestion() {
+  const textInput = el('new-q-text');
+  const topicInput = el('new-q-topic');
+  const text = textInput.value.trim();
+  const topic = topicInput.value.trim() || 'General';
+  if (!text) return;
+  let options, correctIndex;
+  if (pendingQuestionType === 'tf') {
+    options = ['True', 'False'];
+    const checked = document.querySelector('input[name="new-q-correct"]:checked');
+    correctIndex = checked ? parseInt(checked.value, 10) : 0;
+  } else {
+    options = [0, 1, 2, 3].map((i) => (el('new-q-opt-' + i) ? el('new-q-opt-' + i).value.trim() : '')).filter((v) => v !== '');
+    if (options.length < 2) return;
+    const checked = document.querySelector('input[name="new-q-correct"]:checked');
+    correctIndex = checked ? parseInt(checked.value, 10) : 0;
+    if (correctIndex >= options.length) correctIndex = 0;
+  }
+  state.questions.push({
+    id: 'q' + qIdSeq++, text, type: pendingQuestionType, options, correctIndex, topic, resources: [],
+  });
+  textInput.value = ''; topicInput.value = '';
+  renderAll();
+}
+
+function removeQuestion(qId) {
+  state.questions = state.questions.filter((q) => q.id !== qId);
+  renderAll();
+}
+
+function addResourceToQuestion(qId) {
+  const q = state.questions.find((qq) => qq.id === qId);
+  if (!q) return;
+  const typeSel = el('res-type-' + qId);
+  const urlInput = el('res-url-' + qId);
+  const labelInput = el('res-label-' + qId);
+  const url = urlInput.value.trim();
+  if (!url) return;
+  const label = labelInput.value.trim() || url;
+  q.resources.push({ type: typeSel.value, url, label });
+  urlInput.value = ''; labelInput.value = '';
+  renderAll();
+}
+
+function removeResourceFromQuestion(qId, idx) {
+  const q = state.questions.find((qq) => qq.id === qId);
+  if (!q) return;
+  q.resources.splice(idx, 1);
+  renderAll();
+}
+
+function setQuestionsPerRound(v) { state.settings.questionsPerRound = parseInt(v, 10); renderAll(); }
+function setTimePerQuestion(v) { state.settings.timePerQuestion = parseInt(v, 10); renderAll(); }
+
+function canStartSession() {
+  return state.checkpoints.length >= 2 && state.questions.length >= 1;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ================================================================
+   SUPABASE SYNC HELPERS (cross-device sync via Supabase tables +
+   Realtime). Every call is best-effort: the network can fail or
+   Supabase can be unconfigured, and that must never break local
+   solo play (the bot-only fallback in startSession()).
+   ================================================================ */
+async function pushSessionSnapshot(code, snapshot) {
+  if (!sb) return false;
+  try {
+    const { error } = await sb.from('lj_sessions').upsert({ code, snapshot, updated_at: new Date().toISOString() });
+    return !error;
+  } catch (e) { return false; }
+}
+async function fetchSessionSnapshot(code) {
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb.from('lj_sessions').select('snapshot').eq('code', code).maybeSingle();
+    if (error || !data) return null;
+    return data.snapshot;
+  } catch (e) { return null; }
+}
+async function fetchRoster(code) {
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb.from('lj_roster').select('*').eq('code', code);
+    return (!error && data) ? data : [];
+  } catch (e) { return []; }
+}
+async function insertRosterRow(code, id, name, gender) {
+  if (!sb) return false;
+  try {
+    const { error } = await sb.from('lj_roster').insert({ id, code, name, gender, joined_at: new Date().toISOString() });
+    return !error;
+  } catch (e) { return false; }
+}
+async function insertAnswerRow(code, participantId, qIndex, selectedIndex, ms) {
+  if (!sb) return false;
+  try {
+    const { error } = await sb.from('lj_answers').insert({
+      code, participant_id: participantId, q_index: qIndex, selected_index: selectedIndex, ms,
+      submitted_at: new Date().toISOString(),
+    });
+    return !error;
+  } catch (e) { return false; }
+}
+
+function randomCode(len) {
+  len = len || 5;
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L — easier to read aloud
+  let s = '';
+  for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+function randomParticipantId() { return 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+
+function buildJoinUrl() {
+  const base = location.href.split('?')[0].split('#')[0];
+  return base + '?join=' + state.sessionCode;
+}
+
+function startSession() {
+  if (!canStartSession()) return;
+  state.useGeoMap = state.checkpoints.every((c) => c.geocodeStatus === 'ok');
+  const n = clamp(state.settings.questionsPerRound, 1, Math.max(1, state.questions.length));
+  const pool = shuffle(state.questions.map((q) => q.id));
+  state.questionOrder = pool.slice(0, Math.min(n, pool.length));
+  state.screen = 'teacher';
+  state.currentQuestionIndex = -1;
+  state.projectorMode = 'waiting';
+
+  if (state.storageAvailable) {
+    state.sessionCode = randomCode();
+    state.teams = [];
+    state.phase = 'lobby';
+    renderAll();
+    startRosterPolling();
+  } else {
+    state.teams = TEAM_TEMPLATES.map((t) => ({
+      ...t, checkpointIndex: 0, correctCount: 0, topicStats: {}, history: [0],
+    }));
+    state.phase = 'live';
+    renderAll();
+  }
+}
+
+/* ---------- Lobby (QR join, roster discovery, test participants) ----------
+   Realtime, not polling: an initial fetch catches anyone who joined
+   before the teacher device subscribed; the channel subscription
+   catches everyone after. */
+function startRosterPolling() {
+  stopRosterPolling();
+  loadExistingRoster();
+  if (!sb || !state.sessionCode) return;
+  state.rosterChannel = sb
+    .channel('lj-roster-' + state.sessionCode)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'lj_roster', filter: 'code=eq.' + state.sessionCode },
+      (payload) => addRosterRow(payload.new))
+    .subscribe();
+}
+function stopRosterPolling() {
+  if (state.rosterChannel) { sb.removeChannel(state.rosterChannel); state.rosterChannel = null; }
+}
+async function loadExistingRoster() {
+  if (!state.sessionCode) return;
+  const rows = await fetchRoster(state.sessionCode);
+  let changed = false;
+  rows.forEach((row) => { if (addRosterRow(row, /* skipRender */ true)) changed = true; });
+  if (changed && state.phase === 'lobby') renderAll();
+}
+function addRosterRow(row, skipRender) {
+  if (!row || !row.id || state.teams.find((t) => t.id === row.id)) return false;
+  state.teams.push({
+    id: row.id, name: row.name, gender: row.gender, color: colorForIndex(state.teams.length), isRemote: true,
+    checkpointIndex: 0, correctCount: 0, topicStats: {}, history: [0],
+  });
+  if (!skipRender && state.phase === 'lobby') renderAll();
+  return true;
+}
+
+function addTestParticipant() {
+  const idx = state.teams.length;
+  state.teams.push({
+    id: 'test-' + idx + '-' + Date.now().toString(36),
+    name: 'Test Group ' + (idx + 1), gender: 'Prefer not to say', color: colorForIndex(idx),
+    isRemote: false, checkpointIndex: 0, correctCount: 0, topicStats: {}, history: [0],
+  });
+  renderAll();
+}
+
+function beginCompetitionFromLobby() {
+  if (state.teams.length === 0) return;
+  stopRosterPolling();
+  state.phase = 'live';
+  state.currentQuestionIndex = -1;
+  state.projectorMode = 'waiting';
+  renderAll();
+  broadcastState();
+}
+
+/* ================================================================
+   BROADCASTING (teacher device -> any joined student devices)
+   ================================================================ */
+function publicSnapshot() {
+  const q = currentQuestion();
+  const publicQuestion = q ? { id: q.id, text: q.text, type: q.type, options: q.options, topic: q.topic, resources: q.resources } : null;
+  const teamsPublic = {};
+  state.teams.forEach((t) => {
+    teamsPublic[t.id] = {
+      name: t.name, gender: t.gender || '', color: t.color, checkpointIndex: t.checkpointIndex,
+      correctCount: t.correctCount, topicStats: t.topicStats,
+    };
+  });
+  return {
+    code: state.sessionCode,
+    competitionType: state.competitionType,
+    checkpoints: state.checkpoints.map((c) => ({ name: c.name, lat: c.lat, lng: c.lng, fact: c.fact, source: c.source })),
+    phase: state.phase,
+    projectorMode: state.projectorMode,
+    currentQuestionIndex: state.currentQuestionIndex,
+    totalQuestions: state.questionOrder.length,
+    timerTotal: state.timer.total,
+    timerStartedAt: state.timer.startedAt,
+    timerRunning: state.timer.running,
+    question: publicQuestion,
+    lastResults: state.lastResults,
+    teams: teamsPublic,
+    updatedAt: Date.now(),
+  };
+}
+function broadcastState() {
+  if (!state.sessionCode || !state.storageAvailable) return;
+  pushSessionSnapshot(state.sessionCode, publicSnapshot());
+}
+
+/* ================================================================
+   LIVE PLAY
+   ================================================================ */
+function nextQuestion() {
+  clearTimerInterval();
+  state.currentQuestionIndex++;
+  state.questionRevealed = false;
+  state.answersThisQuestion = {};
+  state.lastResults = null;
+  state.projectorMode = 'waiting';
+  renderAll();
+  broadcastState();
+}
+
+function revealQuestion() {
+  if (state.currentQuestionIndex < 0) state.currentQuestionIndex = 0;
+  const q = currentQuestion();
+  if (!q) return;
+  state.questionRevealed = true;
+  state.projectorMode = 'question';
+  state.answersThisQuestion = {};
+  const total = state.settings.timePerQuestion;
+  state.timer.total = total;
+  state.timer.remaining = total;
+  state.timer.startedAt = Date.now();
+  state.timer.running = true;
+  renderAll();
+  broadcastState();
+  startTimerInterval();
+  scheduleBotAnswers(q, total);
+  scheduleAnswerPolling();
+}
+
+function startTimerInterval() {
+  clearTimerInterval();
+  state.timer.intervalId = setInterval(() => {
+    const elapsed = (Date.now() - state.timer.startedAt) / 1000;
+    state.timer.remaining = Math.max(0, state.timer.total - elapsed);
+    updateTimerDom();
+    if (state.timer.remaining <= 0) {
+      clearTimerInterval();
+      lockAnswers();
+    }
+  }, 100);
+}
+function clearTimerInterval() {
+  if (state.timer.intervalId) { clearInterval(state.timer.intervalId); state.timer.intervalId = null; }
+  state.timer.botTimeouts.forEach((t) => clearTimeout(t));
+  state.timer.botTimeouts = [];
+  stopAnswerPolling();
+}
+
+function scheduleAnswerPolling() {
+  stopAnswerPolling();
+  if (!sb || !state.sessionCode) return;
+  state.answerChannel = sb
+    .channel('lj-answers-' + state.sessionCode + '-' + state.currentQuestionIndex)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'lj_answers', filter: 'code=eq.' + state.sessionCode },
+      (payload) => {
+        const row = payload.new;
+        if (!row || !state.timer.running || row.q_index !== state.currentQuestionIndex) return;
+        submitAnswer(row.participant_id, row.selected_index, row.ms);
+      })
+    .subscribe();
+}
+function stopAnswerPolling() {
+  if (state.answerChannel) { sb.removeChannel(state.answerChannel); state.answerChannel = null; }
+}
+
+function scheduleBotAnswers(question, totalSeconds) {
+  state.teams.filter((t) => !t.isHuman && !t.isRemote).forEach((team) => {
+    const willAnswer = Math.random() > 0.1; // 10% miss chance
+    if (!willAnswer) return;
+    const delay = (0.4 + Math.random() * Math.max(0.2, totalSeconds - 0.6)) * 1000;
+    const correctChance = 0.6;
+    const willBeCorrect = Math.random() < correctChance;
+    const timeoutId = setTimeout(() => {
+      if (!state.timer.running) return;
+      let selectedIndex;
+      if (willBeCorrect) {
+        selectedIndex = question.correctIndex;
+      } else {
+        const wrongOptions = question.options.map((_, i) => i).filter((i) => i !== question.correctIndex);
+        selectedIndex = wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
+      }
+      submitAnswer(team.id, selectedIndex, delay);
+    }, delay);
+    state.timer.botTimeouts.push(timeoutId);
+  });
+}
+
+function submitAnswer(teamId, selectedIndex, msOverride) {
+  if (state.answersThisQuestion[teamId]) return; // already answered
+  const q = currentQuestion();
+  if (!q) return;
+  const ms = msOverride != null ? msOverride : (Date.now() - state.timer.startedAt);
+  state.answersThisQuestion[teamId] = { selectedIndex, correct: selectedIndex === q.correctIndex, ms };
+  refreshLiveIndicators();
+  const allAnswered = state.teams.every((t) => state.answersThisQuestion[t.id]);
+  if (allAnswered) { clearTimerInterval(); lockAnswers(); }
+}
+
+function humanSubmitAnswer(selectedIndex) {
+  const human = state.teams.find((t) => t.isHuman);
+  if (!human || !state.timer.running) return;
+  submitAnswer(human.id, selectedIndex);
+  renderAll();
+}
+
+function lockAnswers() {
+  state.timer.running = false;
+  const q = currentQuestion();
+  const results = [];
+  const correctTeams = [];
+  state.teams.forEach((team) => { team.prevCheckpointIndex = team.checkpointIndex; });
+  state.teams.forEach((team) => {
+    const ans = state.answersThisQuestion[team.id];
+    team.topicStats[q.topic] = team.topicStats[q.topic] || { correct: 0, total: 0 };
+    team.topicStats[q.topic].total++;
+    if (ans && ans.correct) {
+      correctTeams.push({ team, ms: ans.ms });
+      team.correctCount++;
+      team.topicStats[q.topic].correct++;
+    }
+    results.push({
+      teamId: team.id, verdict: ans ? (ans.correct ? 'correct' : 'wrong') : 'miss', ms: ans ? ans.ms : null,
+    });
+  });
+  correctTeams.sort((a, b) => a.ms - b.ms);
+  correctTeams.forEach(({ team }) => {
+    team.checkpointIndex = clamp(team.checkpointIndex + 1, 0, totalCheckpoints() - 1);
+    team.history.push(team.checkpointIndex);
+  });
+  state.teams.forEach((team) => {
+    if (!correctTeams.find((c) => c.team.id === team.id)) team.history.push(team.checkpointIndex);
+  });
+  state.lastResults = { questionId: q.id, results, hardestFlagCount: state.teams.length - correctTeams.length };
+  state.questionRevealed = false;
+  renderAll();
+  broadcastState();
+}
+
+function showMap() {
+  state.projectorMode = 'map';
+  const overrides = {};
+  state.teams.forEach((t) => { overrides[t.id] = t.prevCheckpointIndex != null ? t.prevCheckpointIndex : t.checkpointIndex; });
+  state.mapOverridePositions = overrides;
+  renderAll();
+  state.mapOverridePositions = null;
+  setTimeout(() => animateTeamsToCurrentPositions(), 140);
+  broadcastState();
+}
+
+function isLastQuestion() { return state.currentQuestionIndex >= state.questionOrder.length - 1; }
+
+function endSession() {
+  clearTimerInterval();
+  state.phase = 'ended';
+  state.projectorMode = 'waiting';
+  renderAll();
+  broadcastState();
+}
+
+function revealFinalStats() {
+  state.projectorMode = 'stats';
+  renderAll();
+  broadcastState();
+}
+
+function replaySession() {
+  if (state.replayRunning) return;
+  state.replayRunning = true;
+  const maxSteps = Math.max(...state.teams.map((t) => t.history.length));
+  let step = 0;
+  const original = {};
+  state.teams.forEach((t) => { original[t.id] = t.checkpointIndex; });
+  const tick = () => {
+    state.teams.forEach((t) => { t.checkpointIndex = t.history[Math.min(step, t.history.length - 1)]; });
+    renderMapArea();
+    setTimeout(() => animateTeamsToCurrentPositions(), 40);
+    step++;
+    if (step < maxSteps) {
+      setTimeout(tick, 1300);
+    } else {
+      setTimeout(() => {
+        state.teams.forEach((t) => { t.checkpointIndex = original[t.id]; });
+        state.replayRunning = false;
+        renderMapArea();
+        setTimeout(() => animateTeamsToCurrentPositions(), 40);
+      }, 1300);
+    }
+  };
+  tick();
+}
+
+/* ================================================================
+   ALTIMETER DIAL (shared timer widget)
+   ================================================================ */
+function altimeterSVG(id, size, remaining, total) {
+  const r = size / 2 - 8;
+  const c = 2 * Math.PI * r;
+  const pct = total > 0 ? remaining / total : 0;
+  const offset = c * (1 - pct);
+  const urgent = remaining <= Math.min(2, total * 0.3) ? 'urgent' : '';
+  let ticks = '';
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * 360;
+    ticks += `<line class="tick" x1="${size/2}" y1="6" x2="${size/2}" y2="12" transform="rotate(${a} ${size/2} ${size/2})"/>`;
+  }
+  return `
+  <div class="altimeter" id="${id}" data-total="${total}">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle class="track" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="6"/>
+      <circle class="sweep ${urgent}" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="6"
+        stroke-dasharray="${c}" stroke-dashoffset="${offset}"/>
+      ${ticks}
+    </svg>
+    <div class="readout" style="font-size:${Math.round(size*0.26)}px">${Math.ceil(remaining)}</div>
+  </div>`;
+}
+
+function updateTimerDom(remainingOverride) {
+  const remaining = remainingOverride != null ? remainingOverride : state.timer.remaining;
+  document.querySelectorAll('.altimeter[data-total]').forEach((node) => {
+    const total = parseFloat(node.dataset.total);
+    const r = parseFloat(node.querySelector('.sweep').getAttribute('r'));
+    const c = 2 * Math.PI * r;
+    const pct = total > 0 ? remaining / total : 0;
+    const sweep = node.querySelector('.sweep');
+    sweep.setAttribute('stroke-dashoffset', c * (1 - pct));
+    sweep.classList.toggle('urgent', remaining <= Math.min(2, total * 0.3));
+    node.querySelector('.readout').textContent = Math.ceil(remaining);
+  });
+}
+
+function refreshLiveIndicators() {
+  const answeredCount = Object.keys(state.answersThisQuestion).length;
+  const totalTeams = state.teams.length;
+  const tallyNode = el('answered-tally-count');
+  if (tallyNode) tallyNode.textContent = `${answeredCount} / ${totalTeams} teams answered`;
+  document.querySelectorAll('.tally-dot').forEach((d, i) => {
+    d.classList.toggle('filled', i < answeredCount);
+  });
+  const pTally = el('projector-tally-count');
+  if (pTally) pTally.textContent = `${answeredCount} of ${totalTeams} teams have answered`;
+  renderStudentInlineIfNeeded();
+}
+
+function renderStudentInlineIfNeeded() {
+  if (state.screen !== 'student') return;
+  renderStudent();
+}
+
+/* ================================================================
+   TOP-LEVEL RENDER DISPATCH
+   ================================================================ */
+function renderAll() {
+  document.querySelectorAll('.mode-switcher button[data-action="switch-screen"]').forEach((b) => {
+    b.classList.toggle('active', b.dataset.screen === state.screen);
+  });
+  if (state.screen === 'teacher') renderTeacher();
+  else if (state.screen === 'projector') renderProjector();
+  else if (state.screen === 'student') renderStudent();
+}
+
+function switchScreen(screen) {
+  state.screen = screen;
+  renderAll();
+}
+
+/* ================================================================
+   TEACHER VIEW
+   ================================================================ */
+function renderTeacher() {
+  const app = el('app');
+  if (state.phase === 'setup') { app.innerHTML = teacherSetupHTML(); bindSetupExtras(); return; }
+  if (state.phase === 'lobby') { app.innerHTML = teacherLobbyHTML(); renderQRCode('qr-canvas'); return; }
+  if (state.phase === 'live') { app.innerHTML = teacherLiveHTML(); renderMapArea(); return; }
+  if (state.phase === 'ended') { app.innerHTML = teacherEndedHTML(); renderMapArea(); return; }
+}
+
+function renderQRCode(canvasId) {
+  const canvas = el(canvasId);
+  if (!canvas || typeof QRious === 'undefined' || !state.sessionCode) return;
+  try {
+    new QRious({ element: canvas, value: buildJoinUrl(), size: canvas.width || 220, background: '#efe8d6', foreground: '#0a1e17', level: 'M' });
+  } catch (e) { /* QR lib unavailable — code + link are still shown as text */ }
+}
+
+function teacherLobbyHTML() {
+  const joinUrl = buildJoinUrl();
+  return `
+  <div class="screen">
+    <div class="wrap" style="padding-top:28px;padding-bottom:60px;">
+      <div class="eyebrow">Teacher Dashboard \u00b7 Waiting room</div>
+      <h1 style="font-size:26px;margin-top:8px;">Open for joining</h1>
+      <p class="sub" style="margin-top:6px;">Groups scan the code, enter a name, and land straight on their own question screen \u2014 no access to these controls.</p>
+      <div class="lobby-grid">
+        <div class="card lobby-qr-card">
+          <canvas id="qr-canvas" width="220" height="220"></canvas>
+          <div class="lobby-code">${esc(state.sessionCode)}</div>
+          <div class="lobby-link">${esc(joinUrl)}</div>
+        </div>
+        <div class="card lobby-roster-card">
+          <h4>Joined groups (${state.teams.length})</h4>
+          <div id="lobby-roster-list">
+            ${state.teams.length === 0 ? '<p style="color:var(--parchment-dim);font-size:13px;">Waiting for the first scan\u2026</p>' : state.teams.map((t) => `
+              <div class="team-mini-row">
+                <span class="flag" style="background:${t.color}"></span>
+                <div class="info"><div class="tname">${esc(t.name)}${t.isRemote ? '' : ' (test)'}</div><div class="tcheckpoint">${esc(t.gender || '')}</div></div>
+              </div>`).join('')}
+          </div>
+          <div class="action-row" style="margin-top:14px;">
+            <button class="btn small ghost" data-action="add-test-participant">+ Add test group</button>
+          </div>
+        </div>
+      </div>
+      <div class="action-row" style="margin-top:24px;">
+        <button class="btn primary" data-action="begin-from-lobby" ${state.teams.length === 0 ? 'disabled' : ''}>Begin competition</button>
+      </div>
+      ${state.teams.length === 0 ? '<p style="font-size:12px;color:var(--parchment-dim);margin-top:8px;">Add at least one group \u2014 real or test \u2014 to begin.</p>' : ''}
+    </div>
+  </div>`;
+}
+
+function teacherSetupHTML() {
+  const steps = ['type', 'checkpoints', 'questions', 'settings'];
+  const stepLabels = { type: 'Route', checkpoints: 'Checkpoints', questions: 'Questions', settings: 'Settings' };
+  const typeChosen = !!state.competitionType;
+  return `
+  <div class="screen">
+    <div class="wrap">
+      <div class="setup-header">
+        <div class="eyebrow">Teacher Dashboard \u00b7 Setup</div>
+        <h1>Learning Journeys</h1>
+        <p class="sub">Build the route, the checkpoints, and the questions. Everything here is a starting template \u2014 edit, reorder, or replace any of it before you start the session.</p>
+      </div>
+      <div class="step-tabs">
+        ${steps.map((s) => `<button data-action="setup-step" data-step="${s}" class="${state.setupStep === s ? 'active' : ''}" ${s !== 'type' && !typeChosen ? 'disabled' : ''}>${stepLabels[s]}</button>`).join('')}
+      </div>
+      <div class="setup-body">
+        ${state.setupStep === 'type' ? setupTypeStepHTML() : ''}
+        ${state.setupStep === 'checkpoints' ? setupCheckpointsStepHTML() : ''}
+        ${state.setupStep === 'questions' ? setupQuestionsStepHTML() : ''}
+        ${state.setupStep === 'settings' ? setupSettingsStepHTML() : ''}
+      </div>
+    </div>
+    <div class="sticky-footer">
+      <div class="req-note">${canStartSession() ? 'Ready to start.' : `Needs \u2265 2 checkpoints and \u2265 1 question \u2014 currently ${state.checkpoints.length} checkpoint(s), ${state.questions.length} question(s).`}</div>
+      <button class="btn primary" data-action="start-session" ${canStartSession() ? '' : 'disabled'}>Start Session</button>
+    </div>
+  </div>`;
+}
+
+function setupTypeStepHTML() {
+  return `
+  <div class="type-grid">
+    ${Object.entries(TYPE_PRESETS).map(([key, t]) => `
+      <button class="type-card ${state.competitionType === key ? 'selected' : ''}" data-action="select-type" data-type="${key}">
+        <div class="glyph">${t.glyph}</div>
+        <h3>${t.label}</h3>
+        <div class="route-preview">${t.checkpoints.join(' \u2192 ')}</div>
+      </button>`).join('')}
+  </div>`;
+}
+
+function cpMetaText(cp) {
+  if (cp.geocodeStatus === 'ok') return `${cp.lat.toFixed(2)}\u00b0, ${cp.lng.toFixed(2)}\u00b0`;
+  if (cp.geocodeStatus === 'loading') return 'Locating\u2026';
+  if (cp.geocodeStatus === 'fail') return 'Not found \u2014 enter coordinates manually below, or leave as a schematic stop';
+  return 'Pending';
+}
+
+function setupCheckpointsStepHTML() {
+  const anyFail = state.checkpoints.some((c) => c.geocodeStatus === 'fail');
+  return `
+  <div class="eyebrow" style="margin-bottom:14px;">${totalCheckpoints()} checkpoints \u00b7 ${state.useGeoModePreview()}</div>
+  <div class="checkpoint-list">
+    ${state.checkpoints.map((cp, i) => `
+      <div class="checkpoint-row">
+        <div class="order-badge">${i + 1}</div>
+        <div class="cp-main">
+          <div class="cp-name">${esc(cp.name)}</div>
+          <div class="cp-meta ${cp.geocodeStatus === 'fail' ? 'pending' : ''}">${cpMetaText(cp)}</div>
+          ${cp.geocodeStatus === 'fail' ? `
+            <div class="field-row" style="margin-top:8px; max-width:280px;">
+              <div class="field" style="margin-bottom:0;"><input type="number" step="0.0001" placeholder="lat" id="manual-lat-${cp.id}"></div>
+              <div class="field" style="margin-bottom:0;"><input type="number" step="0.0001" placeholder="lng" id="manual-lng-${cp.id}"></div>
+              <button class="btn small" data-action="manual-coord" data-cp="${cp.id}">Set</button>
+            </div>` : ''}
+        </div>
+        <div class="cp-actions">
+          <button class="icon-btn" data-action="move-cp" data-cp="${cp.id}" data-dir="-1" title="Move earlier">\u2191</button>
+          <button class="icon-btn" data-action="move-cp" data-cp="${cp.id}" data-dir="1" title="Move later">\u2193</button>
+          <button class="icon-btn" data-action="remove-cp" data-cp="${cp.id}" title="Remove">\u2715</button>
+        </div>
+      </div>`).join('')}
+  </div>
+  <div class="card add-panel">
+    <div class="panel-title">Add a checkpoint</div>
+    <div class="field"><label>Place name</label><input type="text" id="new-cp-name" placeholder="e.g. Sulaymaniyah"></div>
+    <div class="field"><label>Fact / description (optional)</label><textarea id="new-cp-fact" placeholder="What should students learn when they reach this stop?"></textarea></div>
+    <div class="field"><label>Source / reading link (optional)</label><input type="url" id="new-cp-source" placeholder="https://\u2026"></div>
+    <button class="btn primary" data-action="add-cp">Add checkpoint</button>
+  </div>
+  ${anyFail ? '<p style="font-size:12px;color:var(--parchment-dim);margin-top:4px;">Stops that can\u2019t be located automatically still work \u2014 the session will use a schematic route map instead of a geographic one.</p>' : ''}
+  `;
+}
+
+function setupQuestionsStepHTML() {
+  const existingTopics = [...new Set(state.questions.map((q) => q.topic))];
+  return `
+  <div class="eyebrow" style="margin-bottom:14px;">${state.questions.length} question(s)</div>
+  ${state.questions.map((q) => `
+    <div class="question-card">
+      <div class="q-top">
+        <div class="q-text">${esc(q.text)}</div>
+        <div class="q-topic">${esc(q.topic)}</div>
+      </div>
+      <div class="q-opts">
+        ${q.options.map((o, i) => `<span class="${i === q.correctIndex ? 'correct' : ''}">${i === q.correctIndex ? '\u2713' : '\u25cb'} ${esc(o)}</span>`).join('')}
+      </div>
+      <div class="q-resources">
+        ${q.resources.map((r, i) => `
+          <span class="resource-chip">
+            <span class="res-type">${RESOURCE_TYPES[r.type] || 'Link'}</span>
+            <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.label)}</a>
+            <button class="res-remove" data-action="remove-resource" data-q="${q.id}" data-idx="${i}" title="Remove">\u2715</button>
+          </span>`).join('')}
+      </div>
+      <div class="resource-add-row">
+        <select id="res-type-${q.id}">
+          ${Object.entries(RESOURCE_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+        </select>
+        <input type="url" id="res-url-${q.id}" placeholder="Link to a PDF, video, image, or article\u2026">
+        <input type="text" id="res-label-${q.id}" placeholder="Label (optional)">
+        <button class="btn small" data-action="add-resource" data-q="${q.id}">Add</button>
+      </div>
+      <div class="q-actions"><button class="btn small danger" data-action="remove-q" data-q="${q.id}">Remove question</button></div>
+    </div>`).join('')}
+  <div class="card add-panel">
+    <div class="panel-title">Add a question</div>
+    <div class="field">
+      <label>Type</label>
+      <select id="new-q-type" data-action="set-q-type">
+        <option value="mcq" ${pendingQuestionType === 'mcq' ? 'selected' : ''}>Multiple choice</option>
+        <option value="tf" ${pendingQuestionType === 'tf' ? 'selected' : ''}>True / False</option>
+      </select>
+    </div>
+    <div class="field"><label>Question</label><textarea id="new-q-text" placeholder="e.g. Which biome has the lowest average rainfall?"></textarea></div>
+    ${pendingQuestionType === 'tf' ? `
+      <div class="field">
+        <label>Correct answer</label>
+        <div class="opt-input-row"><input type="radio" name="new-q-correct" value="0" checked> <span>True</span></div>
+        <div class="opt-input-row"><input type="radio" name="new-q-correct" value="1"> <span>False</span></div>
+      </div>` : `
+      <div class="field">
+        <label>Options (mark the correct one)</label>
+        ${[0,1,2,3].map((i) => `<div class="opt-input-row"><input type="radio" name="new-q-correct" value="${i}" ${i===0?'checked':''}><input type="text" id="new-q-opt-${i}" placeholder="Option ${i+1}${i>1?' (optional)':''}"></div>`).join('')}
+      </div>`}
+    <div class="field">
+      <label>Topic / section tag</label>
+      <input type="text" id="new-q-topic" placeholder="e.g. Land Cover" list="topic-list">
+      <datalist id="topic-list">${existingTopics.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
+    </div>
+    <button class="btn primary" data-action="add-q">Add question</button>
+  </div>`;
+}
+
+function setupSettingsStepHTML() {
+  return `
+  <div class="settings-grid">
+    <div class="field">
+      <label>Questions per round</label>
+      <div class="range-row">
+        <input type="range" min="1" max="20" value="${state.settings.questionsPerRound}" data-action="set-qpr">
+        <span class="range-val">${state.settings.questionsPerRound}</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Time per question (seconds)</label>
+      <div class="range-row">
+        <input type="range" min="3" max="30" value="${state.settings.timePerQuestion}" data-action="set-tpq">
+        <span class="range-val">${state.settings.timePerQuestion}s</span>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:13px;color:var(--parchment-dim);max-width:56ch;margin-top:16px;">
+    ${state.questions.length} question(s) written; each round will draw ${Math.min(state.settings.questionsPerRound, Math.max(1, state.questions.length))} of them at random. Six demo teams are seeded automatically \u2014 Team Cairn is played from the Student view for testing; the rest answer on their own.
+  </p>`;
+}
+
+state.useGeoModePreview = function () {
+  if (state.checkpoints.length === 0) return '';
+  const allOk = state.checkpoints.every((c) => c.geocodeStatus === 'ok');
+  const anyPending = state.checkpoints.some((c) => c.geocodeStatus === 'pending' || c.geocodeStatus === 'loading');
+  if (anyPending) return 'locating\u2026';
+  return allOk ? 'will render on a real map' : 'will render as a schematic route';
+};
+
+function bindSetupExtras() {
+  const qTypeSel = el('new-q-type');
+  if (qTypeSel) qTypeSel.addEventListener('change', (e) => { pendingQuestionType = e.target.value; renderTeacher(); });
+}
+
+/* ================================================================
+   TEACHER — LIVE CONTROL VIEW
+   ================================================================ */
+function teacherLiveHTML() {
+  const q = currentQuestion();
+  const progress = `Question ${state.currentQuestionIndex + 1} of ${state.questionOrder.length}`;
+  let mainPanel = '';
+
+  if (state.currentQuestionIndex < 0) {
+    mainPanel = `
+      <div class="card live-question-panel">
+        <div class="live-progress">${TYPE_PRESETS[state.competitionType].label} \u00b7 Ready to begin</div>
+        <h2 style="margin-top:10px;font-size:22px;">All ${state.teams.length} teams are waiting at the start.</h2>
+        <p style="color:var(--parchment-dim);font-size:14px;margin-top:8px;">Tap below to show the first question on the projector and every student phone at once. The timer starts the moment it appears.</p>
+        <div class="action-row"><button class="btn primary" data-action="reveal-question">Show first question</button></div>
+      </div>`;
+  } else if (state.questionRevealed && state.timer.running) {
+    mainPanel = `
+      <div class="card live-question-panel">
+        <div class="live-progress">${progress} \u00b7 live</div>
+        <div class="q-big">${esc(q.text)}</div>
+        ${altimeterSVG('teacher-timer', 96, state.timer.remaining, state.timer.total)}
+        <div class="answered-tally">
+          ${state.teams.map(() => '<span class="dot tally-dot"></span>').join('')}
+          <span id="answered-tally-count">0 / ${state.teams.length} teams answered</span>
+        </div>
+        <p style="font-size:12px;color:var(--parchment-dim);">The round locks automatically when time runs out, or the moment every team has answered.</p>
+      </div>`;
+  } else if (state.lastResults) {
+    const q2 = state.questions.find((qq) => qq.id === state.lastResults.questionId);
+    mainPanel = `
+      <div class="card live-question-panel">
+        <div class="live-progress">${progress} \u00b7 results</div>
+        <div class="q-big" style="font-size:19px;">${esc(q2.text)}</div>
+        <div class="live-opts-preview">
+          ${q2.options.map((o, i) => `<div class="${i === q2.correctIndex ? 'was-correct' : ''}">${i === q2.correctIndex ? '\u2713 ' : ''}${esc(o)}</div>`).join('')}
+        </div>
+        ${state.lastResults.results.map((r) => {
+          const team = teamById(r.teamId);
+          return `<div class="result-line">
+            <span class="flag" style="background:${team.color}"></span>
+            <span class="name">${esc(team.name)}</span>
+            <span class="verdict ${r.verdict}">${r.verdict === 'correct' ? 'Advanced' : r.verdict === 'wrong' ? 'Stayed put' : 'No answer'}</span>
+            ${r.ms != null ? `<span class="ms">${(r.ms/1000).toFixed(1)}s</span>` : ''}
+          </div>`;
+        }).join('')}
+        <div class="action-row">
+          <button class="btn" data-action="show-map">Show live map</button>
+          ${isLastQuestion()
+            ? '<button class="btn primary" data-action="end-session">End session \u2192 statistics</button>'
+            : '<button class="btn primary" data-action="next-question">Next question</button>'}
+        </div>
+      </div>`;
+  } else {
+    mainPanel = `
+      <div class="card live-question-panel">
+        <div class="live-progress">${progress}</div>
+        <h2 style="margin-top:10px;font-size:20px;">Ready for the next question.</h2>
+        <div class="action-row"><button class="btn primary" data-action="reveal-question">Show question</button></div>
+      </div>`;
+  }
+
+  const showMapBlock = state.projectorMode === 'map';
+
+  return `
+  <div class="live-shell">
+    <div>
+      ${mainPanel}
+      ${showMapBlock ? `<div class="card" style="margin-top:16px;padding:16px;">
+        <div class="eyebrow" style="margin-bottom:12px;">Live map \u00b7 shown on projector now</div>
+        <div class="map-wrap" id="map-host"></div>
+      </div>` : ''}
+    </div>
+    <div class="card team-monitor">
+      <h4>Team positions</h4>
+      ${state.teams.map((t) => {
+        const cpIdx = clamp(t.checkpointIndex, 0, totalCheckpoints() - 1);
+        const cpName = state.checkpoints[cpIdx] ? state.checkpoints[cpIdx].name : '\u2014';
+        const pct = totalCheckpoints() > 1 ? (cpIdx / (totalCheckpoints() - 1)) * 100 : 0;
+        return `<div class="team-mini-row">
+          <span class="flag" style="background:${t.color}"></span>
+          <div class="info">
+            <div class="tname">${esc(t.name)}${t.isHuman ? ' (you)' : ''}</div>
+            <div class="tcheckpoint">${esc(cpName)}</div>
+            <div class="progress-track"><div style="width:${pct}%"></div></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   TEACHER — END OF SESSION STATS
+   ================================================================ */
+function computeCheckpointStats() {
+  const n = totalCheckpoints();
+  const totalTeams = state.teams.length;
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const reached = state.teams.filter((t) => t.checkpointIndex >= i).length;
+    rows.push({ index: i, name: state.checkpoints[i].name, reached, pct: totalTeams ? Math.round((reached / totalTeams) * 100) : 0 });
+  }
+  return rows;
+}
+
+function computeHardestQuestion() {
+  let hardest = null;
+  state.questionOrder.forEach((qid) => {
+    const q = state.questions.find((qq) => qq.id === qid);
+    let stuck = 0;
+    state.teams.forEach((t) => {
+      const ts = t.topicStats[q.topic];
+      // approximate per-question stuck count isn't tracked per-question directly;
+      // fall back to topic-level miss rate as a proxy for "hardest concept".
+    });
+    if (!hardest) hardest = q;
+  });
+  // Use topic-level aggregate accuracy across all teams to name the toughest topic.
+  const topicAgg = {};
+  state.teams.forEach((t) => {
+    Object.entries(t.topicStats).forEach(([topic, stat]) => {
+      topicAgg[topic] = topicAgg[topic] || { correct: 0, total: 0 };
+      topicAgg[topic].correct += stat.correct;
+      topicAgg[topic].total += stat.total;
+    });
+  });
+  let worstTopic = null, worstRate = 2;
+  Object.entries(topicAgg).forEach(([topic, stat]) => {
+    const rate = stat.total ? stat.correct / stat.total : 1;
+    if (rate < worstRate) { worstRate = rate; worstTopic = topic; }
+  });
+  return { worstTopic, worstRate, topicAgg };
+}
+
+function teamInsights(team) {
+  const entries = Object.entries(team.topicStats || {}).filter(([, s]) => s.total > 0);
+  const strengths = entries.filter(([, s]) => s.correct / s.total >= 0.8).map(([t]) => t);
+  const weaknesses = entries.filter(([, s]) => s.correct / s.total < 0.6).map(([t]) => t);
+  const resources = [];
+  const seenUrls = new Set();
+  weaknesses.forEach((topic) => {
+    state.questions.filter((q) => q.topic === topic).forEach((q) => {
+      (q.resources || []).forEach((r) => {
+        if (!seenUrls.has(r.url)) { seenUrls.add(r.url); resources.push(r); }
+      });
+    });
+  });
+  return { strengths, weaknesses, resources };
+}
+
+function teacherEndedHTML() {
+  const cpStats = computeCheckpointStats();
+  const hardest = computeHardestQuestion();
+  return `
+  <div class="screen">
+    <div class="wrap" style="padding-top:28px;padding-bottom:60px;">
+      <div class="eyebrow">Teacher Dashboard \u00b7 Session complete</div>
+      <h1 style="font-size:26px;margin-top:8px;">Final statistics</h1>
+      <p class="sub" style="margin-top:6px;">Reveal this on the projector when the class is ready to see it.</p>
+      <div class="action-row" style="margin:16px 0 28px;">
+        <button class="btn primary" data-action="reveal-stats">Reveal on projector</button>
+        <button class="btn" data-action="replay-session">${state.replayRunning ? 'Replaying\u2026' : 'Replay the competition'}</button>
+      </div>
+
+      <div class="stats-section">
+        <h3>Checkpoints reached</h3>
+        ${cpStats.map((r) => `
+          <div class="stat-bar-row">
+            <div class="sb-top"><span>${esc(r.name)}</span><span style="font-family:var(--font-mono);color:var(--gold-300);">${r.reached} of ${state.teams.length} teams \u2014 ${r.pct}%</span></div>
+            <div class="sb-track"><div class="sb-fill" style="width:${r.pct}%"></div></div>
+          </div>`).join('')}
+      </div>
+
+      ${hardest.worstTopic ? `
+      <div class="stats-section">
+        <h3>Hardest concept</h3>
+        <div class="hardest-callout">"${esc(hardest.worstTopic)}" caused the most trouble \u2014 correct only ${Math.round(hardest.worstRate*100)}% of the time across all teams. Worth revisiting before the next session.</div>
+      </div>` : ''}
+
+      <div class="stats-section">
+        <h3>Checkpoint by checkpoint</h3>
+        ${state.checkpoints.map((cp, i) => `
+          <div class="checkpoint-fact-card">
+            <div class="photo-ph">${cp.fact ? 'photo slot' : 'no photo'}</div>
+            <div class="cf-body">
+              <div class="cf-top"><span class="cf-name">${esc(cp.name)}</span><span class="cf-pct">${cpStats[i].pct}% reached</span></div>
+              <div class="cf-fact">${esc(cp.fact) || 'No fact added for this stop yet.'}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <div class="stats-section">
+        <h3>Per-group reports</h3>
+        <div class="action-row" style="margin-bottom:12px;"><button class="btn small" data-action="download-all-pdf">Download all as PDF</button></div>
+        ${state.teams.map((t) => {
+          const insights = teamInsights(t);
+          return `
+          <div class="team-report-card">
+            <div class="trc-top">
+              <span class="flag" style="background:${t.color}"></span>
+              <span class="trname">${esc(t.name)}</span>
+              ${t.gender ? `<span class="trgender">${esc(t.gender)}</span>` : ''}
+              <span class="trscore">${t.correctCount}/${state.questionOrder.length} correct \u00b7 reached ${esc(state.checkpoints[t.checkpointIndex].name)}</span>
+              <button class="btn small" data-action="download-pdf" data-team="${t.id}">PDF</button>
+            </div>
+            <div class="trc-insights">
+              ${insights.strengths.length ? `<div class="insight-line good"><b>Good at:</b> ${insights.strengths.map(esc).join(', ')}</div>` : ''}
+              ${insights.weaknesses.length ? `<div class="insight-line weak"><b>Needs work:</b> ${insights.weaknesses.map(esc).join(', ')}</div>` : ''}
+              ${insights.resources.length ? `<div class="insight-resources">${insights.resources.map((r) => `<a class="resource-chip" href="${esc(r.url)}" target="_blank" rel="noopener"><span class="res-type">${RESOURCE_TYPES[r.type] || 'Link'}</span>${esc(r.label)}</a>`).join('')}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   MAP RENDERING — geographic (Leaflet) or schematic (SVG route)
+   ================================================================ */
+function renderMapArea() {
+  const host = el('map-host');
+  if (!host || state.checkpoints.length < 1) return;
+  const overrides = state.mapOverridePositions;
+  if (state.useGeoMap) renderLeafletMap(host, overrides);
+  else renderSchematicMap(host, overrides);
+}
+
+function posFor(team, overrides) {
+  if (overrides && overrides[team.id] != null) return overrides[team.id];
+  return team.checkpointIndex;
+}
+
+function renderLeafletMap(host, overrides) {
+  if (state.leafletMap) { try { state.leafletMap.remove(); } catch (e) {} state.leafletMap = null; }
+  host.innerHTML = '<div id="leaflet-target"></div>';
+  const target = el('leaflet-target');
+  const map = L.map(target, { zoomControl: false, attributionControl: false, scrollWheelZoom: false });
+  state.leafletMap = map;
+  L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 15 }).addTo(map);
+  const latlngs = state.checkpoints.map((cp) => [cp.lat, cp.lng]);
+  map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50] });
+  L.polyline(latlngs, { color: '#c9a24b', weight: 2, dashArray: '4 8', opacity: 0.85 }).addTo(map);
+  state.checkpoints.forEach((cp) => {
+    L.circleMarker([cp.lat, cp.lng], { radius: 6, color: '#efe8d6', weight: 2, fillColor: '#c9a24b', fillOpacity: 1 })
+      .addTo(map)
+      .bindTooltip(cp.name, { permanent: true, direction: 'top', className: 'cp-tooltip', offset: [0, -6] });
+  });
+  state.leafletMarkers = {};
+  state.teams.forEach((t) => {
+    const idx = clamp(posFor(t, overrides), 0, state.checkpoints.length - 1);
+    const cp = state.checkpoints[idx];
+    const icon = L.divIcon({
+      className: '', iconSize: [26, 26], iconAnchor: [13, 13],
+      html: `<div class="team-avatar" style="background:${t.color}">${esc(t.name.replace('Team ', '')[0])}</div>`,
+    });
+    state.leafletMarkers[t.id] = L.marker([cp.lat, cp.lng], { icon }).addTo(map);
+  });
+}
+
+function schematicXFor(i, n) { return n > 1 ? 8 + (i / (n - 1)) * 84 : 50; }
+
+function renderSchematicMap(host, overrides) {
+  const n = totalCheckpoints();
+  const pathD = state.checkpoints.map((cp, i) => `${i === 0 ? 'M' : 'L'} ${schematicXFor(i, n) * 10} 150`).join(' ');
+  const cpMarkers = state.checkpoints.map((cp, i) => `
+    <circle class="schem-cp-dot" cx="${schematicXFor(i, n) * 10}" cy="150" r="6"/>
+    <text class="schem-cp-label" x="${schematicXFor(i, n) * 10}" y="178" text-anchor="middle">${esc(cp.name)}</text>
+  `).join('');
+  const groups = {};
+  state.teams.forEach((t) => {
+    const idx = clamp(posFor(t, overrides), 0, n - 1);
+    groups[idx] = groups[idx] || [];
+    groups[idx].push(t);
+  });
+  let avatarsHTML = '';
+  Object.entries(groups).forEach(([idx, teams]) => {
+    const baseX = schematicXFor(parseInt(idx, 10), n);
+    teams.forEach((t, j) => {
+      const offset = (j - (teams.length - 1) / 2) * 4.2;
+      avatarsHTML += `<div class="team-avatar" data-team="${t.id}" style="left:${baseX + offset}%; top:32%; position:absolute; transform:translate(-50%,-50%); background:${t.color};">${esc(t.name.replace('Team ', '')[0])}</div>`;
+    });
+  });
+  host.innerHTML = `
+    <div class="schematic-route">
+      <svg viewBox="0 0 1000 220" preserveAspectRatio="none">
+        <path class="schematic-path" d="${pathD}"/>
+        ${cpMarkers}
+      </svg>
+      ${avatarsHTML}
+    </div>`;
+}
+
+function animateTeamsToCurrentPositions() {
+  if (state.useGeoMap) {
+    if (!state.leafletMap) return;
+    state.teams.forEach((t) => {
+      const idx = clamp(t.checkpointIndex, 0, totalCheckpoints() - 1);
+      const cp = state.checkpoints[idx];
+      const marker = state.leafletMarkers[t.id];
+      if (marker && cp) marker.setLatLng([cp.lat, cp.lng]);
+    });
+  } else {
+    const n = totalCheckpoints();
+    const groups = {};
+    state.teams.forEach((t) => {
+      const idx = clamp(t.checkpointIndex, 0, n - 1);
+      groups[idx] = groups[idx] || [];
+      groups[idx].push(t);
+    });
+    Object.entries(groups).forEach(([idx, teams]) => {
+      const baseX = schematicXFor(parseInt(idx, 10), n);
+      teams.forEach((t, j) => {
+        const offset = (j - (teams.length - 1) / 2) * 4.2;
+        const node = document.querySelector(`.team-avatar[data-team="${t.id}"]`);
+        if (node) node.style.left = (baseX + offset) + '%';
+      });
+    });
+  }
+}
+
+/* ================================================================
+   PROJECTOR VIEW
+   ================================================================ */
+function renderProjector() {
+  const app = el('app');
+  if (state.phase === 'setup') { app.innerHTML = projectorWaitingHTML('Waiting for the teacher to build the session\u2026'); return; }
+  if (state.phase === 'lobby') { app.innerHTML = projectorLobbyHTML(); renderQRCode('projector-qr-canvas'); return; }
+  if (state.phase === 'ended' && state.projectorMode !== 'stats') {
+    app.innerHTML = projectorWaitingHTML('Session complete \u2014 waiting for the teacher to reveal statistics.'); return;
+  }
+  if (state.projectorMode === 'question' && state.phase === 'live') { app.innerHTML = projectorQuestionHTML(); return; }
+  if (state.projectorMode === 'map') { app.innerHTML = projectorMapHTML(); renderMapArea(); return; }
+  if (state.projectorMode === 'stats') { app.innerHTML = projectorStatsHTML(); return; }
+  app.innerHTML = projectorWaitingHTML('Waiting for the teacher\u2026');
+}
+
+function projectorLobbyHTML() {
+  return `
+  <div class="projector-screen">
+    <div style="text-align:center;">
+      <div class="eyebrow" style="justify-content:center;margin-bottom:18px;">Scan to join</div>
+      <canvas id="projector-qr-canvas" width="320" height="320"></canvas>
+      <div class="lobby-code" style="font-size:34px;margin-top:18px;">${esc(state.sessionCode)}</div>
+      <p style="color:var(--parchment-dim);margin-top:14px;">${state.teams.length} group${state.teams.length === 1 ? '' : 's'} joined so far</p>
+    </div>
+  </div>`;
+}
+
+function projectorWaitingHTML(msg) {
+  const typeLabel = state.competitionType ? TYPE_PRESETS[state.competitionType].label : '';
+  return `
+  <div class="projector-screen projector-waiting">
+    <h1>Learning Journeys</h1>
+    ${typeLabel ? `<div class="type-name">${esc(typeLabel)}</div>` : ''}
+    <p style="margin-top:22px;color:var(--parchment-dim);font-size:15px;">${esc(msg)}</p>
+    <div class="pulse"></div>
+  </div>`;
+}
+
+function projectorQuestionHTML() {
+  const q = currentQuestion();
+  const answeredCount = Object.keys(state.answersThisQuestion).length;
+  return `
+  <div class="projector-screen">
+    <div class="projector-question">
+      <div class="p-topic">${esc(q.topic)} \u00b7 Question ${state.currentQuestionIndex + 1} of ${state.questionOrder.length}</div>
+      <div class="p-qtext">${esc(q.text)}</div>
+      ${altimeterSVG('projector-timer', 130, state.timer.remaining, state.timer.total)}
+      <div class="trail-signs ${q.type === 'tf' ? 'tf' : ''}">
+        ${q.options.map((o, i) => `<div class="trail-sign" data-letter="${q.type === 'tf' ? (i === 0 ? 'T' : 'F') : String.fromCharCode(65 + i)}">${esc(o)}</div>`).join('')}
+      </div>
+      <div class="p-tally" id="projector-tally-count">${answeredCount} of ${state.teams.length} teams have answered</div>
+    </div>
+  </div>`;
+}
+
+function projectorMapHTML() {
+  return `
+  <div class="projector-screen">
+    <div style="width:100%;max-width:1000px;">
+      <div class="eyebrow" style="margin-bottom:16px;justify-content:center;">${esc(TYPE_PRESETS[state.competitionType].label)} \u00b7 live positions</div>
+      <div class="map-wrap projector-map" id="map-host" style="margin:0 auto;"></div>
+    </div>
+  </div>`;
+}
+
+function projectorStatsHTML() {
+  const cpStats = computeCheckpointStats();
+  const hardest = computeHardestQuestion();
+  return `
+  <div class="projector-screen" style="align-items:center;">
+    <div class="projector-stats">
+      <div class="eyebrow" style="margin-bottom:8px;justify-content:flex-start;">Final statistics</div>
+      <h2 style="font-size:30px;margin-bottom:22px;">Where every team ended up</h2>
+      ${cpStats.map((r) => `
+        <div class="stat-bar-row">
+          <div class="sb-top"><span>${esc(r.name)}</span><span style="font-family:var(--font-mono);color:var(--gold-300);">${r.reached} of ${state.teams.length} \u2014 ${r.pct}%</span></div>
+          <div class="sb-track"><div class="sb-fill" style="width:${r.pct}%"></div></div>
+        </div>`).join('')}
+      ${hardest.worstTopic ? `<div class="hardest-callout" style="margin-top:20px;">Hardest concept: \u201c${esc(hardest.worstTopic)}\u201d \u2014 correct only ${Math.round(hardest.worstRate * 100)}% of the time.</div>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   STUDENT VIEW
+   Plays as the human-controlled team (Team Cairn) for testing.
+   ================================================================ */
+function verdictFeedbackHTML(teamId, lastResults, question) {
+  if (!lastResults) return '';
+  const mine = lastResults.results.find((r) => r.teamId === teamId);
+  if (!mine) return '';
+  if (mine.verdict === 'correct') return '<div class="feedback-correct">Nice \u2014 you advanced!</div>';
+  if (question && question.resources && question.resources.length) {
+    return `<div class="feedback-review">
+      <div class="fr-title">${mine.verdict === 'miss' ? 'Time ran out \u2014 here\u2019s what to review:' : 'Not quite \u2014 here\u2019s what to review:'}</div>
+      ${question.resources.map((r) => `<a class="resource-chip" href="${esc(r.url)}" target="_blank" rel="noopener"><span class="res-type">${RESOURCE_TYPES[r.type] || 'Link'}</span>${esc(r.label)}</a>`).join('')}
+    </div>`;
+  }
+  return `<div class="feedback-wrong">${mine.verdict === 'miss' ? 'Time ran out that round.' : 'Not quite this time.'}</div>`;
+}
+
+function renderStudent() {
+  if (state.joinMode) { renderJoinStudent(); return; }
+  const app = el('app');
+  const human = state.teams.find((t) => t.isHuman);
+
+  if (state.phase === 'setup' || !human) {
+    const msg = state.sessionCode
+      ? 'Live sessions are played on each group\u2019s own device. Open the join link (or scan the QR) in another tab or phone to preview the student view.'
+      : 'Waiting for the teacher to start the session\u2026';
+    app.innerHTML = `
+    <div class="student-screen">
+      <div class="student-wait">
+        <h3 style="font-size:20px;color:var(--parchment);font-family:var(--font-display);">Student view</h3>
+        <p style="margin-top:10px;">${msg}</p>
+      </div>
+    </div>`;
+    return;
+  }
+
+  const cpIdx = clamp(human.checkpointIndex, 0, totalCheckpoints() - 1);
+  const cpName = state.checkpoints[cpIdx] ? state.checkpoints[cpIdx].name : '\u2014';
+  const badge = `
+    <div class="student-team-badge">
+      <span class="flag" style="background:${human.color}"></span>
+      <div>
+        <div class="tname">${esc(human.name)}</div>
+        <div class="checkpoint-now">At: ${esc(cpName)}</div>
+      </div>
+    </div>`;
+
+  if (state.phase === 'ended') {
+    const total = state.questionOrder.length;
+    const topicLines = Object.entries(human.topicStats).map(([topic, s]) => `
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--pine-700);">
+        <span>${esc(topic)}</span><span style="font-family:var(--font-mono);">${s.correct}/${s.total}</span>
+      </div>`).join('');
+    app.innerHTML = `
+    <div class="student-screen">
+      ${badge}
+      <div class="student-result">
+        <div class="eyebrow" style="justify-content:center;">Session complete</div>
+        <div class="final-cp">${esc(cpName)}</div>
+        <p style="color:var(--parchment-dim);font-size:14px;">${human.correctCount} of ${total} correct</p>
+        <div style="margin-top:20px;text-align:left;">${topicLines}</div>
+        <p style="margin-top:18px;font-size:12.5px;color:var(--parchment-dim);">Your teacher can send you the full report.</p>
+      </div>
+    </div>`;
+    return;
+  }
+
+  if (state.projectorMode !== 'question' || !state.timer.running) {
+    const q2 = state.lastResults ? state.questions.find((qq) => qq.id === state.lastResults.questionId) : null;
+    const fb = verdictFeedbackHTML(human.id, state.lastResults, q2);
+    app.innerHTML = `
+    <div class="student-screen">
+      ${badge}
+      <div class="student-wait">
+        ${fb || '<p>Watch the projector\u2026</p>'}
+      </div>
+    </div>`;
+    return;
+  }
+
+  const q = currentQuestion();
+  const already = state.answersThisQuestion[human.id];
+  if (already) {
+    app.innerHTML = `
+    <div class="student-screen">
+      ${badge}
+      <div class="student-locked">
+        ${altimeterSVG('student-timer', 84, state.timer.remaining, state.timer.total)}
+        <div class="lockline">Answer locked in \u2014 waiting for the round to end.</div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  app.innerHTML = `
+  <div class="student-screen">
+    ${badge}
+    ${altimeterSVG('student-timer', 84, state.timer.remaining, state.timer.total)}
+    <div class="student-qtext">${esc(q.text)}</div>
+    <div class="trail-signs ${q.type === 'tf' ? 'tf' : ''}">
+      ${q.options.map((o, i) => `<button class="trail-sign" data-action="student-answer" data-index="${i}" data-letter="${q.type === 'tf' ? (i === 0 ? 'T' : 'F') : String.fromCharCode(65 + i)}">${esc(o)}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   JOIN MODE — a student's own device, scanned in via QR.
+   Everything here is READ from the synced snapshot (state.synced)
+   written by the teacher's device, or WRITTEN to this participant's
+   own storage key. Never touches the teacher's local state.
+   ================================================================ */
+function initJoinModeIfNeeded() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('join');
+  if (!code) return;
+  state.joinMode = true;
+  state.joinCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  state.screen = 'student';
+  const switcher = document.querySelector('.mode-switcher');
+  if (switcher) switcher.style.display = 'none';
+  const appEl = el('app');
+  if (appEl) appEl.style.paddingTop = '0';
+  if (!state.storageAvailable) { state.joinUnsupported = true; return; }
+  try {
+    const saved = JSON.parse(localStorage.getItem('lj_identity_' + state.joinCode) || 'null');
+    if (saved && saved.id) { state.participantId = saved.id; state.registered = true; }
+  } catch (e) { /* ignore */ }
+  startJoinPolling();
+}
+
+function startJoinPolling() {
+  pollSyncedState(); // initial fetch, in case the teacher's state already exists
+  if (sb && state.joinCode) {
+    state.stateChannel = sb
+      .channel('lj-state-' + state.joinCode)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'lj_sessions', filter: 'code=eq.' + state.joinCode },
+        (payload) => {
+          if (payload.new && payload.new.snapshot) {
+            state.synced = payload.new.snapshot;
+            state.syncedAt = Date.now();
+            renderStudent();
+          }
+        })
+      .subscribe();
+  }
+  state.joinTickId = setInterval(tickJoinTimerDisplay, 200);
+}
+async function pollSyncedState() {
+  if (!state.joinCode) return;
+  const data = await fetchSessionSnapshot(state.joinCode);
+  if (data) { state.synced = data; state.syncedAt = Date.now(); }
+  renderStudent();
+}
+function tickJoinTimerDisplay() {
+  if (!state.joinMode || !state.synced || !state.synced.timerRunning) return;
+  const elapsedSincePoll = (Date.now() - state.syncedAt) / 1000;
+  const elapsedTotal = ((state.syncedAt - state.synced.timerStartedAt) / 1000) + elapsedSincePoll;
+  const remaining = Math.max(0, state.synced.timerTotal - elapsedTotal);
+  updateTimerDom(remaining);
+}
+
+function submitRegistration() {
+  const nameInput = el('join-name');
+  const genderSel = el('join-gender');
+  if (!nameInput) return;
+  const name = nameInput.value.trim();
+  if (!name) return;
+  const gender = genderSel ? genderSel.value : '';
+  const id = randomParticipantId();
+  state.participantId = id;
+  state.registered = true;
+  try { localStorage.setItem('lj_identity_' + state.joinCode, JSON.stringify({ id, name, gender })); } catch (e) { /* ignore */ }
+  insertRosterRow(state.joinCode, id, name, gender);
+  renderStudent();
+}
+
+function joinModeSubmitAnswer(selectedIndex) {
+  if (!state.synced || state.synced.projectorMode !== 'question' || !state.synced.timerRunning) return;
+  const elapsedSincePoll = (Date.now() - state.syncedAt) / 1000;
+  const elapsedTotal = ((state.syncedAt - state.synced.timerStartedAt) / 1000) + elapsedSincePoll;
+  const ms = Math.max(0, Math.round(elapsedTotal * 1000));
+  const qIndex = state.synced.currentQuestionIndex;
+  state._localAnsweredQIndex = qIndex;
+  renderStudent();
+  insertAnswerRow(state.joinCode, state.participantId, qIndex, selectedIndex, ms);
+}
+
+function joinRegistrationHTML() {
+  return `
+  <div class="student-screen">
+    <div class="card join-card">
+      <div class="eyebrow" style="justify-content:center;">Joining session ${esc(state.joinCode)}</div>
+      <h2 style="font-size:21px;text-align:center;margin:14px 0 6px;">What should we call your group?</h2>
+      <div class="field"><label>Name</label><input type="text" id="join-name" placeholder="e.g. The Map Readers"></div>
+      <div class="field">
+        <label>Gender</label>
+        <select id="join-gender">${GENDER_OPTIONS.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join('')}</select>
+      </div>
+      <button class="btn primary" style="width:100%;" data-action="submit-registration">Join the journey</button>
+    </div>
+  </div>`;
+}
+
+function renderJoinStudent() {
+  const app = el('app');
+  if (state.joinUnsupported) {
+    app.innerHTML = `
+    <div class="student-screen"><div class="student-wait">
+      <h3 style="font-size:19px;color:var(--parchment);font-family:var(--font-display);">Can\u2019t connect</h3>
+      <p style="margin-top:10px;">This session needs to be opened from the live shared link the teacher shared \u2014 it can\u2019t sync from a plain downloaded copy of this page.</p>
+    </div></div>`;
+    return;
+  }
+  if (!state.registered) { app.innerHTML = joinRegistrationHTML(); return; }
+
+  const snap = state.synced;
+  if (!snap) {
+    app.innerHTML = `<div class="student-screen"><div class="student-wait"><p>Connecting to session ${esc(state.joinCode)}\u2026</p></div></div>`;
+    return;
+  }
+
+  const me = snap.teams ? snap.teams[state.participantId] : null;
+  let savedName = '';
+  try { savedName = (JSON.parse(localStorage.getItem('lj_identity_' + state.joinCode) || '{}').name) || ''; } catch (e) { /* ignore */ }
+  const badgeName = me ? me.name : (savedName || 'You');
+  const cpList = snap.checkpoints || [];
+  const cpIdx = me ? clamp(me.checkpointIndex, 0, Math.max(0, cpList.length - 1)) : 0;
+  const cpName = cpList[cpIdx] ? cpList[cpIdx].name : '\u2014';
+  const badge = `
+    <div class="student-team-badge">
+      <span class="flag" style="background:${me ? me.color : '#c9a24b'}"></span>
+      <div><div class="tname">${esc(badgeName)}</div><div class="checkpoint-now">At: ${esc(cpName)}</div></div>
+    </div>`;
+
+  if (snap.phase === 'lobby' || snap.phase === 'setup') {
+    app.innerHTML = `<div class="student-screen">${badge}<div class="student-wait"><p>You\u2019re in! Waiting for the teacher to begin\u2026</p></div></div>`;
+    return;
+  }
+
+  if (snap.phase === 'ended') {
+    const topicLines = me ? Object.entries(me.topicStats || {}).map(([topic, s]) => `
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--pine-700);">
+        <span>${esc(topic)}</span><span style="font-family:var(--font-mono);">${s.correct}/${s.total}</span>
+      </div>`).join('') : '';
+    app.innerHTML = `
+    <div class="student-screen">${badge}
+      <div class="student-result">
+        <div class="eyebrow" style="justify-content:center;">Session complete</div>
+        <div class="final-cp">${esc(cpName)}</div>
+        <p style="color:var(--parchment-dim);font-size:14px;">${me ? me.correctCount : 0} of ${snap.totalQuestions} correct</p>
+        <div style="margin-top:20px;text-align:left;">${topicLines}</div>
+        <p style="margin-top:18px;font-size:12.5px;color:var(--parchment-dim);">Your teacher can send you the full report.</p>
+      </div>
+    </div>`;
+    return;
+  }
+
+  const alreadyAnsweredThisQ = state._localAnsweredQIndex === snap.currentQuestionIndex;
+
+  if (snap.projectorMode !== 'question' || !snap.timerRunning) {
+    const fb = verdictFeedbackHTML(state.participantId, snap.lastResults, snap.question);
+    app.innerHTML = `<div class="student-screen">${badge}<div class="student-wait">${fb || '<p>Watch the projector\u2026</p>'}</div></div>`;
+    return;
+  }
+
+  if (alreadyAnsweredThisQ) {
+    app.innerHTML = `
+    <div class="student-screen">${badge}
+      <div class="student-locked">
+        ${altimeterSVG('student-timer', 84, 1, 1)}
+        <div class="lockline">Answer locked in \u2014 waiting for the round to end.</div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  const q = snap.question;
+  if (!q) { app.innerHTML = `<div class="student-screen">${badge}<div class="student-wait"><p>Watch the projector\u2026</p></div></div>`; return; }
+  app.innerHTML = `
+  <div class="student-screen">${badge}
+    ${altimeterSVG('student-timer', 84, 1, 1)}
+    <div class="student-qtext">${esc(q.text)}</div>
+    <div class="trail-signs ${q.type === 'tf' ? 'tf' : ''}">
+      ${q.options.map((o, i) => `<button class="trail-sign" data-action="join-answer" data-index="${i}" data-letter="${q.type === 'tf' ? (i === 0 ? 'T' : 'F') : String.fromCharCode(65 + i)}">${esc(o)}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   PDF REPORTS
+   ================================================================ */
+function buildTeamReportLines(team) {
+  const lines = [];
+  lines.push('Learning Journeys \u2014 Group Report');
+  lines.push(team.name + (team.gender ? ' (' + team.gender + ')' : ''));
+  lines.push('');
+  lines.push(`Final checkpoint: ${state.checkpoints[team.checkpointIndex].name}`);
+  lines.push(`Overall score: ${team.correctCount} / ${state.questionOrder.length} correct`);
+  lines.push('');
+  lines.push('Breakdown by topic:');
+  Object.entries(team.topicStats).forEach(([topic, s]) => lines.push(`  - ${topic}: ${s.correct}/${s.total} correct`));
+  const insights = teamInsights(team);
+  lines.push('');
+  lines.push(insights.strengths.length ? `Good at: ${insights.strengths.join(', ')}` : 'Good at: not enough data yet');
+  lines.push(insights.weaknesses.length ? `Needs work: ${insights.weaknesses.join(', ')}` : 'Needs work: none \u2014 solid across the board.');
+  if (insights.resources.length) {
+    lines.push('');
+    lines.push('Suggested study material:');
+    insights.resources.forEach((r) => lines.push(`  - [${RESOURCE_TYPES[r.type] || 'Link'}] ${r.label}: ${r.url}`));
+  }
+  return lines;
+}
+
+function downloadTeamPDF(teamId) {
+  const team = teamById(teamId);
+  if (!team || !window.jspdf) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const lines = buildTeamReportLines(team);
+  let y = 20;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+  doc.text(lines[0], 14, y); y += 8;
+  doc.setFontSize(13); doc.text(lines[1], 14, y); y += 12;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+  for (let i = 3; i < lines.length; i++) { doc.text(lines[i] || ' ', 14, y); y += 7; }
+  doc.save(`${team.name.replace(/\s+/g, '_')}_report.pdf`);
+}
+
+function downloadAllPDFs() { state.teams.forEach((t) => downloadTeamPDF(t.id)); }
+
+/* ================================================================
+   EVENT DELEGATION
+   ================================================================ */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  switch (action) {
+    case 'switch-screen': switchScreen(btn.dataset.screen); break;
+    case 'setup-step': state.setupStep = btn.dataset.step; renderAll(); break;
+    case 'select-type': selectType(btn.dataset.type); break;
+    case 'add-cp': addCheckpoint(); break;
+    case 'remove-cp': removeCheckpoint(btn.dataset.cp); break;
+    case 'move-cp': moveCheckpoint(btn.dataset.cp, parseInt(btn.dataset.dir, 10)); break;
+    case 'manual-coord': manualCoordSave(btn.dataset.cp); break;
+    case 'add-q': addQuestion(); break;
+    case 'remove-q': removeQuestion(btn.dataset.q); break;
+    case 'add-resource': addResourceToQuestion(btn.dataset.q); break;
+    case 'remove-resource': removeResourceFromQuestion(btn.dataset.q, parseInt(btn.dataset.idx, 10)); break;
+    case 'start-session': startSession(); break;
+    case 'add-test-participant': addTestParticipant(); break;
+    case 'begin-from-lobby': beginCompetitionFromLobby(); break;
+    case 'submit-registration': submitRegistration(); break;
+    case 'join-answer': joinModeSubmitAnswer(parseInt(btn.dataset.index, 10)); break;
+    case 'reveal-question': revealQuestion(); break;
+    case 'show-map': showMap(); break;
+    case 'next-question': nextQuestion(); break;
+    case 'end-session': endSession(); break;
+    case 'reveal-stats': revealFinalStats(); break;
+    case 'replay-session': replaySession(); break;
+    case 'download-pdf': downloadTeamPDF(btn.dataset.team); break;
+    case 'download-all-pdf': downloadAllPDFs(); break;
+    case 'student-answer': humanSubmitAnswer(parseInt(btn.dataset.index, 10)); break;
+    default: break;
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.dataset.action === 'set-qpr') {
+    state.settings.questionsPerRound = parseInt(e.target.value, 10);
+    const label = e.target.parentElement.querySelector('.range-val');
+    if (label) label.textContent = state.settings.questionsPerRound;
+  }
+  if (e.target.dataset.action === 'set-tpq') {
+    state.settings.timePerQuestion = parseInt(e.target.value, 10);
+    const label = e.target.parentElement.querySelector('.range-val');
+    if (label) label.textContent = state.settings.timePerQuestion + 's';
+  }
+});
+document.addEventListener('change', (e) => {
+  if (e.target.dataset.action === 'set-qpr' || e.target.dataset.action === 'set-tpq') renderAll();
+});
+
+/* ================================================================
+   INIT
+   ================================================================ */
+initJoinModeIfNeeded();
+renderAll();
+
+
+</script>
+</body>
+</html>
